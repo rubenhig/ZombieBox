@@ -4,6 +4,8 @@ This document outlines the core gameplay mechanics for the initial version of th
 
 ## Player Mechanics
 
+*Note: All mechanics below are implemented using a Server-Authoritative logic. In Single-player mode, the local machine acts as the server.*
+
 -   **Movement**:
     -   Top-down movement in 8 directions (WASD or arrow keys).
     -   The player character's sprite will rotate to face the direction of movement or aiming.

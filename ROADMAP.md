@@ -4,72 +4,69 @@ This document outlines the development tasks for the project, broken down into m
 
 ## Milestone 1: Project Setup and Core Player Mechanics
 
-- [ ] **Configuración Inicial del Proyecto**
-  - [ ] Create Godot 4 (Mono) project.
-  - [ ] Set up the folder structure (`scenes`, `scripts`, `assets`).
-  - [ ] Configure Input Actions (`move_*`, `shoot`).
-  - [ ] Initialize Git repository.
+- [x] **Configuración Inicial del Proyecto**
+  - [x] Create Godot 4 (Mono) project.
+  - [x] Set up the folder structure (`scenes`, `scripts`, `assets`).
+  - [x] Configure Input Actions (`move_*`, `shoot`, `switch_weapon`).
+  - [x] Initialize Git repository.
 
-- [ ] **Escena Principal (Main) y Nodo Game**
-  - [ ] Create `Main.tscn` as the main scene.
-  - [ ] Add a `Game` Node2D to contain the game world.
-  - [ ] Add placeholder nodes for enemies and spawn points.
+- [x] **Escena Principal (Main) y Nodo Game**
+  - [x] Create `Main.tscn` as the main scene.
+  - [x] Add a `Game` Node2D to contain the game world.
+  - [x] Add placeholder nodes for enemies and spawn points.
 
-- [ ] **Jugador – Movimiento básico (Single-player)**
-  - [ ] Create `player.tscn` with a `CharacterBody2D`.
-  - [ ] Implement `Player.cs` script for input-based movement (`MoveAndSlide`).
-  - [ ] Ensure the player character rotates towards the movement direction.
+- [x] **Jugador – Movimiento básico (Single-player)**
+  - [x] Create `player.tscn` with a `CharacterBody2D`.
+  - [x] Implement `Player.cs` script for input-based movement (`MoveAndSlide`).
+  - [x] Ensure the player character rotates towards the movement direction.
 
-- [ ] **Disparo Local – Implementación de Bala**
-  - [ ] Create `bullet.tscn` as an `Area2D`.
-  - [ ] Implement `Bullet.cs` script for movement and screen exit detection.
-  - [ ] Implement shoot functionality in `Player.cs` to instantiate bullets.
+- [x] **Disparo Local – Implementación de Bala**
+  - [x] Create `bullet.tscn` as an `Area2D`.
+  - [x] Implement `Bullet.cs` script for movement and screen exit detection.
+  - [x] Implement shoot functionality in `Player.cs` to instantiate bullets.
 
-- [ ] **Múltiples Armas (Pistola vs. Ametralladora)**
-  - [ ] Differentiate between single-shot (pistol) and continuous-fire (machine gun).
-  - [ ] Add logic to switch between weapons.
+- [x] **Múltiples Armas (Pistola vs. Ametralladora)**
+  - [x] Differentiate between single-shot (pistol) and continuous-fire (machine gun).
+  - [x] Add logic to switch between weapons.
 
 ## Milestone 2: Enemies and Gameplay Loop
 
-- [ ] **Enemigo – Escena e IA básica**
-  - [ ] Create `enemy.tscn` with a `CharacterBody2D`.
-  - [ ] Add the enemy to an "enemigo" group.
-  - [ ] Implement `Enemy.cs` with basic AI to follow the nearest player.
+- [x] **Enemigo – Escena e IA básica**
+  - [x] Create `enemy.tscn` with a `CharacterBody2D`.
+  - [x] Add the enemy to an "enemies" group.
+  - [x] Implement `Enemy.cs` with basic AI to follow the nearest player.
 
-- [ ] **Gestión de Oleadas (WaveManager)**
-  - [ ] Create a `WaveManager` node.
-  - [ ] Implement logic to spawn progressively larger waves of enemies at random spawn points.
-  - [ ] Use a timer to control the time between waves.
+- [x] **Gestión de Oleadas (WaveManager)**
+  - [x] Create a `WaveManager` node.
+  - [x] Implement logic to spawn progressively larger waves of enemies at random spawn points.
+  - [x] Use a timer to control the time between waves.
 
-- [ ] **Combate – Integración Balas y Enemigos**
-  - [ ] Implement collision detection between bullets and enemies.
-  - [ ] Enemies should be destroyed upon being hit.
-  - [ ] Implement basic player health and damage on enemy contact.
+- [x] **Combate – Integración Balas y Enemigos**
+  - [x] Implement collision detection between bullets and enemies.
+  - [x] Enemies should be destroyed upon being hit.
+  - [x] Implement basic player health and damage on enemy contact.
 
-- [ ] **Interfaz HUD básica**
-  - [ ] Add a `CanvasLayer` for the HUD.
-  - [ ] Display wave count, enemies killed, and player health.
-  - [ ] Connect HUD to game events to update its state.
+- [x] **Interfaz HUD básica**
+  - [x] Add a `CanvasLayer` for the HUD.
+  - [x] Display wave count, enemies killed, and player health.
+  - [x] Connect HUD to game events to update its state.
 
-## Milestone 3: Multiplayer Implementation
+## Milestone 3: Multiplayer Implementation (Refactored Architecture)
 
-- [ ] **Implementación de Red – Servidor/Cliente**
-  - [ ] **Networking Base:**
-    - [ ] Create a `NetworkManager` (Singleton/Autoload).
-    - [ ] Implement `StartServer()` and `JoinServer()` methods using `MultiplayerAPI`.
-    - [ ] Handle `peer_connected` and `peer_disconnected` signals.
-    - [ ] Spawn a player character for each connected client.
-  - [ ] **Sync Jugadores:**
-    - [ ] Send client inputs to the server via RPCs.
-    - [ ] The server processes inputs and updates player positions.
-    - [ ] Replicate player movement across all clients.
-  - [ ] **Sync Disparos:**
-    - [ ] Client sends a "shoot" request via RPC.
-    - [ ] The server validates the request and spawns the bullet authoritatively.
-    - [ ] Replicate the bullet's creation and movement to all clients.
-  - [ ] **Sync Enemigos:**
-    - [ ] The server authoritatively spawns and controls enemy AI.
-    - [ ] Replicate enemy creation, movement, and destruction to all clients.
+- [ ] **Infraestructura de Red (Everything is Multiplayer)**
+  - [ ] **Core Refactoring:**
+	- [x] Convert `NetworkManager` to Autoload (`/root/NetworkManager`).
+    - [x] Implement `Master` scene for persistent orchestration.
+    - [ ] Update `Main.tscn` with `MultiplayerSpawner` nodes for Players and Enemies.
+  - [ ] **PlayerInput Component:**
+	- [ ] Create `PlayerInput.cs` to handle input reading decoupled from `Player.cs`.
+	- [ ] Implement `MultiplayerSynchronizer` logic to sync Input (Client->Server).
+  - [ ] **Server Authoritative Physics:**
+	- [ ] Refactor `Player.cs` to move only based on `PlayerInput` state, executed by Server authority.
+    - [ ] Add `MultiplayerSynchronizer` to `player.tscn` for syncing Position/Rotation (Server->Clients).
+  - [ ] **Game Logic Adaptation:**
+	- [ ] Ensure `WaveManager` and `Enemy` logic only runs on Server (`IsServer()`).
+    - [ ] Refactor Shooting to use Server-validated spawning via `MultiplayerSpawner`.
 
 ## Milestone 4: Polishing and Finalizing
 

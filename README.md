@@ -23,5 +23,6 @@ This repository is organized to help development (human or AI-assisted). The key
 1.  Ensure you have the .NET SDK and Godot Engine 4.x (Mono version) installed.
 2.  Clone this repository.
 3.  Open the project in Godot Engine. The engine should recognize the C# solution.
-4.  Build the C# solution by clicking the build button in the Godot editor's C# panel.
-5.  Follow the [ROADMAP.md](./ROADMAP.md) to contribute to the development.
+4.  **Entry Point:** The project is configured to launch `scenes/Master.tscn`, which initializes the `NetworkManager` and loads the `Menu` scene.
+5.  Build the C# solution by clicking the build button in the Godot editor's C# panel.
+6.  Follow the [ROADMAP.md](./ROADMAP.md) to contribute to the development.

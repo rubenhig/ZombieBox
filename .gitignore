@@ -1,3 +1,18 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+*.translation
+
+# C# / .NET build artifacts (Important to ignore)
+bin/
+obj/
+.vs/
+*.csproj.user
+*.sln.docstates
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# VSCode (Optional: Uncomment if you want to keep local settings private)
+# .vscode/

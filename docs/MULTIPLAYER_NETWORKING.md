@@ -42,23 +42,30 @@ A `NetworkManager` singleton will handle the networking lifecycle:
 3.  The server stores a reference to this new player, associating it with the client's unique network ID.
 4.  The server notifies all clients about the new player so they can create a local instance of it.
 
-### Input Handling and State Synchronization
+### Input Handling and State Synchronization (Component Based)
 
-1.  **Input from Client to Server**:
-    -   On the client side, the `_PhysicsProcess` function reads local input.
-    -   Instead of applying the movement locally, it sends the input data (e.g., a direction vector and a "shooting" boolean) to the server using an RPC.
-    -   Example RPC: `RpcId(1, "ReceivePlayerInput", input_direction, is_shooting)`. (The ID `1` is always the server).
+We avoid mixing networking code directly into game entities. Instead, we use a dedicated **PlayerInput** component.
 
-2.  **Processing on Server**:
-    -   The server receives the `ReceivePlayerInput` RPC.
-    -   It finds the `Player` node corresponding to the client that sent the RPC.
-    -   It applies the input to that player's physics, moving the character and handling any other actions like shooting.
+1.  **Input Collection (Client/Owner Side)**:
+    -   The `PlayerInput` component runs on the client that owns the player authority.
+    -   It reads local hardware input (Keyboard/Mouse) and updates public properties (e.g., `Vector2 InputDirection`).
+    -   A `MultiplayerSynchronizer` node is configured to automatically replicate these input properties from the Client to the Server.
 
-3.  **Broadcasting State from Server to Clients**:
-    -   After the server updates an object's state (e.g., a player's position), it needs to inform all clients.
-    -   This can be done via RPCs or Godot's `MultiplayerSynchronizer` node.
-    -   For example, the server could broadcast the new positions of all dynamic objects at a fixed interval (e.g., 10-20 times per second).
-    -   Example RPC: `Rpc("UpdateObjectTransform", object_id, new_transform)`.
+2.  **Processing (Server Side)**:
+    -   The Server-side `Player` entity reads the `InputDirection` from its `PlayerInput` component.
+    -   Crucially, the server code **does not care** if this input came from a local keyboard (Singleplayer Host) or was synchronized over the network (Multiplayer Client). It just applies the physics.
+    -   The server simulates the movement authoritatively using `MoveAndSlide`.
+
+3.  **State Broadcasting (Server to Clients)**:
+    -   The Server's resulting position/rotation is synchronized back to all clients using a second `MultiplayerSynchronizer` (or the same one configured for bi-directional sync if appropriate, usually separate for security).
+    -   Clients receive the new transform and update their visual representation. Interpolation is applied for smoothness.
+
+### Authoritative Spawning (MultiplayerSpawner)
+
+Godot 4's `MultiplayerSpawner` node simplifies object replication.
+-   **Players**: A `MultiplayerSpawner` in `Main.tscn` watches the "Players" container. When the server instantiates a `Player.tscn` for a new client, the Spawner automatically replicates it to all connected clients.
+-   **Bullets/Enemies**: Similarly, Spawners handle the creation of projectiles and zombies initiated by the Server logic.
+
 
 ### Authoritative Spawning (Bullets, Enemies)
 
