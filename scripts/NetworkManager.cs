@@ -107,18 +107,24 @@ public partial class NetworkManager : Node
         GD.Print("Spawning player for ID: " + id);
         
         Player player = PlayerScene.Instantiate<Player>();
-        player.Name = id.ToString(); // Explicit name matching Authority ID
+        player.Name = id.ToString(); // Unique Name for the Node
         _playersContainer.AddChild(player, true);
         
-        // Set authority so the client with this ID can control this player
-        player.SetMultiplayerAuthority((int)id);
+        // === AUTHORITY SETUP ===
+        // 1. The Player Body (Root) is owned by the Server (ID 1).
+        //    It's the "Physical Reality".
+        player.SetMultiplayerAuthority(1);
         
-        // Also set authority for the PlayerInput child if it exists
-        // Note: The Player script or component should handle this, but setting it here is safe.
+        // 2. The Player Input (Brain) is owned by the Client (ID 'id').
+        //    It's the "Intent".
         var input = player.GetNodeOrNull("PlayerInput");
         if (input != null)
         {
             input.SetMultiplayerAuthority((int)id);
+        }
+        else
+        {
+            GD.PrintErr("PlayerInput node missing in Player scene!");
         }
 
         EmitSignal(SignalName.PlayerSpawned, player);

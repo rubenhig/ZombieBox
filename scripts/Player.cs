@@ -38,8 +38,11 @@ public partial class Player : CharacterBody2D
 
     public override void _PhysicsProcess(double delta)
     {
-        // Only the server should process physics in a server-authoritative model
-        // However, for now we let the authority move and we will add sync later
+        // SERVER AUTHORITATIVE LOGIC
+        // Only the server processes movement and game logic.
+        // Clients only interpolate the position received via MultiplayerSynchronizer.
+        if (!Multiplayer.IsServer()) return;
+
         if (Health <= 0) return;
 
         HandleMovement();
@@ -49,10 +52,16 @@ public partial class Player : CharacterBody2D
 
     public void TakeDamage(int damage)
     {
+        // Only server handles damage
+        if (!Multiplayer.IsServer()) return;
+
         if (Health <= 0) return;
 
         Health -= damage;
         GD.Print($"{Name} took damage. Health: {Health}");
+        // We might want to sync health via RPC or property replication later.
+        // For now, signal is emitted on server.
+        // Ideally, we should replicate Health property too.
         EmitSignal(SignalName.HealthChanged, Health);
         
         if (Health <= 0)
@@ -65,7 +74,9 @@ public partial class Player : CharacterBody2D
     {
         GD.Print($"{Name} died!");
         SetPhysicsProcess(false);
-        Hide();
+        Hide(); // Visual hide only locally? Or synced?
+        // Note: Hide() property is not synced by default.
+        // We might need an RPC to notify death or sync 'visible' property.
         
         EmitSignal(SignalName.Died);
 
@@ -76,11 +87,13 @@ public partial class Player : CharacterBody2D
 
     private void HandleMovement()
     {
+        // _input properties are synced from Client -> Server via InputSynchronizer
         Vector2 direction = _input.MoveVector;
 
         if (direction != Vector2.Zero)
         {
             Velocity = direction.Normalized() * Speed;
+            // AimDirection is also synced from Client
             Rotation = _input.AimDirection.Angle();
         }
         else
@@ -88,6 +101,7 @@ public partial class Player : CharacterBody2D
             Velocity = Vector2.Zero;
         }
 
+        // MoveAndSlide updates 'Position', which is synced Server -> Client via ServerSynchronizer
         MoveAndSlide();
     }
 
@@ -128,17 +142,22 @@ public partial class Player : CharacterBody2D
 
     private void Shoot()
     {
+        // Only server spawns bullets
+        if (!Multiplayer.IsServer()) return;
+
         // Find Bullets container
         Node bulletsContainer = GetTree().Root.FindChild("Bullets", true, false);
         if (bulletsContainer == null) return;
 
         Bullet bullet = BulletScene.Instantiate<Bullet>();
-        bullet.Name = "Bullet_" + Name + "_" + Time.GetTicksMsec(); // Unique name for network
+        // Unique name is critical for MultiplayerSpawner
+        bullet.Name = "Bullet_" + Name + "_" + Time.GetTicksMsec();
         bullet.EnemyKilled += OnEnemyKilledByBullet;
         bullet.SetDirection(_input.AimDirection);
         bullet.GlobalPosition = GlobalPosition;
         
-        // Add to bullets container with readable name for spawner
+        // Add to bullets container.
+        // Since BulletSpawner in Main watches this container, it will replicate the bullet to clients.
         bulletsContainer.AddChild(bullet, true);
     }
 
