@@ -15,44 +15,38 @@ public partial class Player : CharacterBody2D
     [Signal]
     public delegate void DiedEventHandler();
 
+    // State properties
     public int Health { get; private set; } = 3;
-    private int _kills = 0;
+    public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol;
 
-    private PlayerInput _input;
-    private WeaponType _currentWeapon = WeaponType.Pistol;
-    private Timer _shootTimer;
-    private float _machineGunFireRate = 5.0f; // Shots per second
+    private int _kills = 0;
 
     public override void _Ready()
     {
-        _input = GetNode<PlayerInput>("PlayerInput");
-        
-        _shootTimer = new Timer();
-        AddChild(_shootTimer);
-        _shootTimer.WaitTime = 1.0f / _machineGunFireRate;
-        _shootTimer.OneShot = true;
-        
+        // Initial state sync
         EmitSignal(SignalName.HealthChanged, Health);
         EmitSignal(SignalName.EnemyKilled, _kills);
     }
 
-    public override void _PhysicsProcess(double delta)
-    {
-        // Only the server should process physics in a server-authoritative model
-        // However, for now we let the authority move and we will add sync later
-        if (Health <= 0) return;
+    // --- State Modification Methods (Called by ServerController) ---
 
-        HandleMovement();
-        HandleWeaponSwitch();
-        HandleShooting();
+    public void SwitchWeapon()
+    {
+        CurrentWeapon = CurrentWeapon == WeaponType.Pistol ? WeaponType.MachineGun : WeaponType.Pistol;
+        GD.Print($"{Name} switched to {CurrentWeapon}");
+        // Here we could play a sound or animation
     }
 
     public void TakeDamage(int damage)
     {
+        // Guard: Only allow server to call this (redundant if called by ServerController, but safe)
+        if (!Multiplayer.IsServer()) return;
+
         if (Health <= 0) return;
 
         Health -= damage;
         GD.Print($"{Name} took damage. Health: {Health}");
+
         EmitSignal(SignalName.HealthChanged, Health);
         
         if (Health <= 0)
@@ -61,90 +55,29 @@ public partial class Player : CharacterBody2D
         }
     }
 
+    // --- Event Handlers ---
+
+    public void OnEnemyKilledByBullet()
+    {
+        // Logic might stay here or move to controller.
+        // Keeping it here makes it easy to bind to the Bullet signal.
+        if (!Multiplayer.IsServer()) return;
+
+        _kills++;
+        EmitSignal(SignalName.EnemyKilled, _kills);
+    }
+
     private void Die()
     {
         GD.Print($"{Name} died!");
-        SetPhysicsProcess(false);
-        Hide();
         
+        // Disable visuals locally
+        Hide();
+
         EmitSignal(SignalName.Died);
 
-        // Notify GameManager
+        // Notify GameManager (This part assumes GameManager exists)
         var gameManager = GetTree().Root.FindChild("GameManager", true, false) as GameManager;
         gameManager?.GameOver();
-    }
-
-    private void HandleMovement()
-    {
-        Vector2 direction = _input.MoveVector;
-
-        if (direction != Vector2.Zero)
-        {
-            Velocity = direction.Normalized() * Speed;
-            Rotation = _input.AimDirection.Angle();
-        }
-        else
-        {
-            Velocity = Vector2.Zero;
-        }
-
-        MoveAndSlide();
-    }
-
-    private void HandleWeaponSwitch()
-    {
-        if (_input.IsSwitchingWeapon)
-        {
-            _currentWeapon = _currentWeapon == WeaponType.Pistol ? WeaponType.MachineGun : WeaponType.Pistol;
-            GD.Print($"{Name} switched to {_currentWeapon}");
-        }
-    }
-
-    private void HandleShooting()
-    {
-        if (BulletScene == null) 
-        {
-            GD.PrintErr("Player: BulletScene is not assigned!");
-            return;
-        }
-
-        switch (_currentWeapon)
-        {
-            case WeaponType.Pistol:
-                if (_input.IsShootingJustPressed) 
-                {
-                    Shoot();
-                }
-                break;
-            case WeaponType.MachineGun:
-                if (_input.IsShooting && _shootTimer.IsStopped())
-                {
-                    Shoot();
-                    _shootTimer.Start();
-                }
-                break;
-        }
-    }
-
-    private void Shoot()
-    {
-        // Find Bullets container
-        Node bulletsContainer = GetTree().Root.FindChild("Bullets", true, false);
-        if (bulletsContainer == null) return;
-
-        Bullet bullet = BulletScene.Instantiate<Bullet>();
-        bullet.Name = "Bullet_" + Name + "_" + Time.GetTicksMsec(); // Unique name for network
-        bullet.EnemyKilled += OnEnemyKilledByBullet;
-        bullet.SetDirection(_input.AimDirection);
-        bullet.GlobalPosition = GlobalPosition;
-        
-        // Add to bullets container with readable name for spawner
-        bulletsContainer.AddChild(bullet, true);
-    }
-
-    private void OnEnemyKilledByBullet()
-    {
-        _kills++;
-        EmitSignal(SignalName.EnemyKilled, _kills);
     }
 }

@@ -1,10 +1,11 @@
-[gd_scene load_steps=4 format=3 uid="uid://d0j2f7wylnxqe"]
+[gd_scene load_steps=6 format=3 uid="uid://d0j2f7wylnxqe"]
 
 [ext_resource type="Script" path="res://scripts/Player.cs" id="1_gx2j3"]
 [ext_resource type="Texture2D" uid="uid://b11ge5rtwrk65" path="res://icon.svg" id="2_c2vsc"]
 [ext_resource type="Script" path="res://scripts/Components/PlayerInput.cs" id="3_input"]
-[ext_resource type="SceneReplicationConfig" uid="uid://b123456789" path="res://scenes/player_replication_config.tres" id="4_sync"]
-
+[ext_resource type="Script" path="res://scripts/Components/PlayerServerController.cs" id="3_server_logic"]
+[ext_resource type="SceneReplicationConfig" path="res://scenes/player_server_sync.tres" id="4_sync_server"]
+[ext_resource type="SceneReplicationConfig" path="res://scenes/player_input_sync.tres" id="5_sync_input"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_zprhn"]
 radius = 38.0
@@ -15,11 +16,17 @@ collision_layer = 2
 collision_mask = 5
 script = ExtResource("1_gx2j3")
 
+[node name="ServerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = ExtResource("4_sync_server")
+
+[node name="ServerController" type="Node" parent="."]
+script = ExtResource("3_server_logic")
+
 [node name="PlayerInput" type="Node" parent="."]
 script = ExtResource("3_input")
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
-replication_config = ExtResource("4_sync")
+[node name="InputSynchronizer" type="MultiplayerSynchronizer" parent="PlayerInput"]
+replication_config = ExtResource("5_sync_input")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("2_c2vsc")
