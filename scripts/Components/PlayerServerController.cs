@@ -75,48 +75,20 @@ public partial class PlayerServerController : Node
 
     private void HandleShooting()
     {
-        if (_player.BulletScene == null)
+        // Machine Gun uses State Synchronization (Continuous fire)
+        // Pistol is handled via RPC in Player.cs for reliable "JustPressed" feel
+        if (_player.CurrentWeapon == WeaponType.MachineGun)
         {
-            GD.PrintErr("PlayerServerController: BulletScene is not assigned on Player!");
-            return;
-        }
-
-        switch (_player.CurrentWeapon)
-        {
-            case WeaponType.Pistol:
-                // Rising Edge Detection for semi-auto fire
-                if (_input.IsShooting && !_wasShooting)
-                {
-                    PerformShoot();
-                }
-                break;
-            case WeaponType.MachineGun:
-                // Continuous fire (State checking)
-                if (_input.IsShooting && _shootTimer.IsStopped())
-                {
-                    PerformShoot();
-                    _shootTimer.Start();
-                }
-                break;
+            if (_input.IsShooting && _shootTimer.IsStopped())
+            {
+                PerformShoot();
+                _shootTimer.Start();
+            }
         }
     }
 
     private void PerformShoot()
     {
-        // Logic to spawn bullet
-        Node bulletsContainer = GetTree().Root.FindChild("Bullets", true, false);
-        if (bulletsContainer == null) return;
-
-        Bullet bullet = _player.BulletScene.Instantiate<Bullet>();
-        // Unique naming for network
-        bullet.Name = "Bullet_" + _player.Name + "_" + Time.GetTicksMsec();
-
-        // Connect signal to the Player's method (which emits the signal upwards)
-        bullet.EnemyKilled += _player.OnEnemyKilledByBullet;
-
-        bullet.SetDirection(_input.AimDirection);
-        bullet.GlobalPosition = _player.GlobalPosition;
-
-        bulletsContainer.AddChild(bullet, true);
+        _player.DoFire();
     }
 }

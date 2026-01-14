@@ -17,15 +17,70 @@ public partial class Player : CharacterBody2D
 
     // State properties
     public int Health { get; private set; } = 3;
-    public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol;
+    public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol; // Public for Controller
+    
+    private int _kills = 0; // Restored field
 
-    private int _kills = 0;
+    private PlayerInput _input;
+    private Timer _shootTimer;
+    private float _machineGunFireRate = 5.0f; // Shots per second
 
     public override void _Ready()
     {
-        // Initial state sync
+        _input = GetNode<PlayerInput>("PlayerInput");
+        
+        _shootTimer = new Timer();
+        AddChild(_shootTimer);
+        _shootTimer.WaitTime = 1.0f / _machineGunFireRate;
+        _shootTimer.OneShot = true;
+        
         EmitSignal(SignalName.HealthChanged, Health);
         EmitSignal(SignalName.EnemyKilled, _kills);
+    }
+
+    // --- Input & Networking ---
+
+    // Called by PlayerInput (Local Client)
+    public void TryShoot()
+    {
+        if (CurrentWeapon == WeaponType.Pistol)
+        {
+            RpcId(1, nameof(RequestFire));
+        }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    private void RequestFire()
+    {
+        if (!Multiplayer.IsServer()) return;
+        DoFire();
+    }
+
+    // Called by ServerController (MachineGun) or RPC (Pistol)
+    public void DoFire()
+    {
+        if (BulletScene == null)
+        {
+            GD.PrintErr("Player: BulletScene is not assigned!");
+            return;
+        }
+
+        Node bulletsContainer = GetTree().Root.FindChild("Bullets", true, false);
+        if (bulletsContainer == null) return;
+
+        Bullet bullet = BulletScene.Instantiate<Bullet>();
+        bullet.Name = "Bullet_" + Name + "_" + Time.GetTicksMsec(); 
+        
+        bullet.EnemyKilled += OnEnemyKilledByBullet;
+        
+        // We need AimDirection. Since PlayerInput is a child, we can access it.
+        // Or better: ServerController passes it? 
+        // For simplicity: We use current Rotation or ask Input component.
+        var input = GetNode<PlayerInput>("PlayerInput");
+        bullet.SetDirection(input.AimDirection);
+        
+        bullet.GlobalPosition = GlobalPosition;
+        bulletsContainer.AddChild(bullet, true);
     }
 
     // --- State Modification Methods (Called by ServerController) ---
@@ -75,9 +130,5 @@ public partial class Player : CharacterBody2D
         Hide();
 
         EmitSignal(SignalName.Died);
-
-        // Notify GameManager (This part assumes GameManager exists)
-        var gameManager = GetTree().Root.FindChild("GameManager", true, false) as GameManager;
-        gameManager?.GameOver();
     }
 }

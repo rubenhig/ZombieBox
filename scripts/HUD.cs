@@ -33,12 +33,7 @@ public partial class HUD : CanvasLayer
         {
             waveManager.WaveChanged += OnWaveChanged;
         }
-
-        GameManager gameManager = GetTree().Root.FindChild("GameManager", true, false) as GameManager;
-        if (gameManager != null)
-        {
-            gameManager.GameEnded += OnGameEnded;
-        }
+        // GameManager connection moved to GameManager.cs via dependency injection
     }
 
     public void RegisterPlayer(Player player)
@@ -55,24 +50,33 @@ public partial class HUD : CanvasLayer
         OnPlayerHealthChanged(player.Health);
     }
 
+    public void ShowGameOver()
+    {
+        _gameOverPanel.Visible = true;
+    }
+
     private void OnPlayerHealthChanged(int newHealth)
     {
-        _healthLabel.Text = "Health: " + newHealth;
+        if (IsInstanceValid(_healthLabel))
+        {
+            _healthLabel.Text = "Health: " + newHealth;
+        }
     }
 
     private void OnWaveChanged(int newWave)
     {
-        _waveLabel.Text = "Wave: " + newWave;
+        if (IsInstanceValid(_waveLabel))
+        {
+            _waveLabel.Text = "Wave: " + newWave;
+        }
     }
 
     private void OnPlayerKilledEnemy(int newKills)
     {
-        _killsLabel.Text = "Kills: " + newKills;
-    }
-
-    private void OnGameEnded()
-    {
-        _gameOverPanel.Visible = true;
+        if (IsInstanceValid(_killsLabel))
+        {
+            _killsLabel.Text = "Kills: " + newKills;
+        }
     }
 
     private void OnRestartPressed()

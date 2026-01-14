@@ -41,7 +41,9 @@ public partial class WaveManager : Node
         _waveTimer.OneShot = false; // The timer will repeat
         _waveTimer.Timeout += OnWaveTimerTimeout;
         
-        StartFirstWave();
+        // Initial delay before the first wave starts to allow everything to initialize
+        GD.Print("WaveManager: Waiting 2 seconds before first wave...");
+        GetTree().CreateTimer(2.0f).Timeout += StartFirstWave;
     }
 
     private void StartFirstWave()

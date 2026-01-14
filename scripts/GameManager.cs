@@ -9,8 +9,17 @@ public partial class GameManager : Node
 
 	public bool IsGameOver { get; private set; } = false;
 
+	private HUD _hud;
+
 	public override void _Ready()
 	{
+		// Locate HUD
+		_hud = GetNode<HUD>("UI/HUD");
+		if (_hud != null)
+		{
+			GameEnded += _hud.ShowGameOver;
+		}
+
 		// Notify NetworkManager that the game level is ready
 		// and provide the containers for spawning
 		var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
@@ -27,15 +36,14 @@ public partial class GameManager : Node
 
 	private void OnPlayerSpawned(Player player)
 	{
-		// Find HUD and connect it to the new player
-		// Assuming HUD is at ../UI/HUD relative to GameManager (Main)
-		var hud = GetNodeOrNull<HUD>("../UI/HUD");
-		if (hud == null) hud = GetTree().Root.FindChild("HUD", true, false) as HUD;
-		
-		if (hud != null)
+		// Register player with HUD using stored reference
+		if (_hud != null)
 		{
-			hud.RegisterPlayer(player);
+			_hud.RegisterPlayer(player);
 		}
+
+		// Clean DDD: Listen to the player's death to trigger game over
+		player.Died += GameOver;
 	}
 
 	public void GameOver()
@@ -46,17 +54,11 @@ public partial class GameManager : Node
 		GD.Print("GameManager: Game Over!");
 		EmitSignal(SignalName.GameEnded);
 
-		// Stop spawning enemies
-		var waveManager = GetNodeOrNull<WaveManager>("../Game/WaveManager"); // Adjust path if needed, assuming GameManager is sibling to Game or root
+		// Stop spawning enemies - Fix path: GameManager is on "Main", WaveManager is child of "Game"
+		var waveManager = GetNodeOrNull<WaveManager>("Game/WaveManager"); 
 		if (waveManager != null)
 		{
 			waveManager.StopWaves();
-		}
-		else 
-		{
-             // Fallback search if path structure varies
-             waveManager = GetTree().Root.FindChild("WaveManager", true, false) as WaveManager;
-             waveManager?.StopWaves();
 		}
 	}
 }

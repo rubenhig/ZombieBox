@@ -21,16 +21,23 @@ public partial class Enemy : CharacterBody2D
 	{
 		// Only server should process physics in a fully authoritative model
 		// For now, we keep it simple for local play
-		if (_target != null && IsInstanceValid(_target))
+		
+		if (_target == null || !IsInstanceValid(_target))
 		{
-			Vector2 direction = (_target.GlobalPosition - GlobalPosition).Normalized();
-			Velocity = direction * Speed;
-			Rotation = direction.Angle();
+			// Try to find a target if we don't have one
+			_target = GetTree().GetFirstNodeInGroup("players") as CharacterBody2D;
+			
+			if (_target == null)
+			{
+				Velocity = Vector2.Zero;
+				MoveAndSlide();
+				return;
+			}
 		}
-		else
-		{
-			Velocity = Vector2.Zero;
-		}
+
+		Vector2 direction = (_target.GlobalPosition - GlobalPosition).Normalized();
+		Velocity = direction * Speed;
+		Rotation = direction.Angle();
 
 		MoveAndSlide();
 	}

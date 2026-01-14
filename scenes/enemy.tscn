@@ -14,7 +14,7 @@ height = 55.0
 
 [node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 4
-collision_mask = 11
+collision_mask = 15
 script = ExtResource("1_abcde")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
