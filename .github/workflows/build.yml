@@ -9,6 +9,7 @@ on:
 env:
   GODOT_VERSION: 4.2.1 # Using a stable version for CI reliability, adjust if needed
   EXPORT_NAME: ZombieBox
+  DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1 # Fixes missing ICU package on Linux runners
 
 jobs:
   export-windows:
