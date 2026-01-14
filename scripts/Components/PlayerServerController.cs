@@ -10,7 +10,6 @@ public partial class PlayerServerController : Node
 
     // Previous frame state for Edge Detection
     private bool _wasShooting = false;
-    private bool _wasSwitching = false;
 
     public override void _Ready()
     {
@@ -37,12 +36,10 @@ public partial class PlayerServerController : Node
         if (_player.Health <= 0) return;
 
         HandleMovement();
-        HandleWeaponSwitch();
         HandleShooting();
 
         // Update previous state for next frame
         _wasShooting = _input.IsShooting;
-        _wasSwitching = _input.IsSwitchingWeapon;
     }
 
     private void HandleMovement()
@@ -62,15 +59,6 @@ public partial class PlayerServerController : Node
 
         // Apply physics to the Body
         _player.MoveAndSlide();
-    }
-
-    private void HandleWeaponSwitch()
-    {
-        // Rising Edge Detection: Only trigger when input goes from False -> True
-        if (_input.IsSwitchingWeapon && !_wasSwitching)
-        {
-            _player.SwitchWeapon();
-        }
     }
 
     private void HandleShooting()

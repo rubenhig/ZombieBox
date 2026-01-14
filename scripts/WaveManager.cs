@@ -17,6 +17,7 @@ public partial class WaveManager : Node
     public delegate void WaveChangedEventHandler(int newWave);
 
     private int _currentWave = 1;
+    private int _zombiesAlive = 0;
     private Timer _waveTimer;
     private Node _spawnPointsContainer;
     private List<Marker2D> _spawnPoints = new List<Marker2D>();
@@ -24,8 +25,8 @@ public partial class WaveManager : Node
 
     public override void _Ready()
     {
-        _spawnPointsContainer = GetNode("../SpawnPoints");
-        _enemiesContainer = GetNode("../Enemies");
+        _spawnPointsContainer = GetNode("../../World/SpawnPoints");
+        _enemiesContainer = GetNode("../../World/Entities/Enemies");
 
         foreach (Node child in _spawnPointsContainer.GetChildren())
         {
@@ -38,28 +39,25 @@ public partial class WaveManager : Node
         _waveTimer = new Timer();
         AddChild(_waveTimer);
         _waveTimer.WaitTime = TimeBetweenWaves;
-        _waveTimer.OneShot = false; // The timer will repeat
-        _waveTimer.Timeout += OnWaveTimerTimeout;
+        _waveTimer.OneShot = true; // Timer is now for cooldown between waves
+        _waveTimer.Timeout += StartNextWave; // When cooldown ends, start wave
         
         // Initial delay before the first wave starts to allow everything to initialize
         GD.Print("WaveManager: Waiting 2 seconds before first wave...");
-        GetTree().CreateTimer(2.0f).Timeout += StartFirstWave;
+        GetTree().CreateTimer(2.0f).Timeout += StartWaveLogic;
     }
 
-    private void StartFirstWave()
+    private void StartWaveLogic()
     {
-        GD.Print("Starting Wave " + _currentWave);
+        GD.Print($"WaveManager: Starting Wave {_currentWave}");
         EmitSignal(SignalName.WaveChanged, _currentWave);
         SpawnWave();
-        _waveTimer.Start();
     }
 
-    private void OnWaveTimerTimeout()
+    private void StartNextWave()
     {
         _currentWave++;
-        GD.Print("Starting Wave " + _currentWave);
-        EmitSignal(SignalName.WaveChanged, _currentWave);
-        SpawnWave();
+        StartWaveLogic();
     }
 
     private void SpawnWave()
@@ -71,6 +69,10 @@ public partial class WaveManager : Node
         }
 
         int enemiesToSpawn = InitialZombiesPerWave * _currentWave;
+        // We don't set _zombiesAlive here because SpawnEnemy increments it? 
+        // No, better to count successful spawns or just rely on the events.
+        // Let's rely on SpawnEnemy connecting the signal.
+        
         for (int i = 0; i < enemiesToSpawn; i++)
         {
             SpawnEnemy();
@@ -88,12 +90,35 @@ public partial class WaveManager : Node
         Enemy enemy = EnemyScene.Instantiate<Enemy>();
         enemy.Name = "Enemy_" + Guid.NewGuid().ToString(); // Unique name for network sync
         enemy.GlobalPosition = spawnPoint.GlobalPosition;
+        
+        // Connect to Died signal to track progress
+        enemy.Died += OnEnemyDied;
+        _zombiesAlive++;
+
         _enemiesContainer.AddChild(enemy, true);
+    }
+
+    private void OnEnemyDied()
+    {
+        _zombiesAlive--;
+        GD.Print($"WaveManager: Enemy Died. Zombies alive: {_zombiesAlive}");
+        if (_zombiesAlive <= 0)
+        {
+            WaveCompleted();
+        }
+    }
+
+    private void WaveCompleted()
+    {
+        GD.Print($"Wave {_currentWave} Completed! Resting for {TimeBetweenWaves} seconds...");
+        _waveTimer.Start();
     }
 
     public void StopWaves()
     {
         _waveTimer.Stop();
+        // Disconnect logic could go here if we wanted to be super clean, 
+        // but since enemies are destroyed on Game Over usually, it's fine.
         GD.Print("WaveManager: Waves stopped.");
     }
 }

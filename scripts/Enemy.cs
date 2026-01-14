@@ -6,15 +6,40 @@ public partial class Enemy : CharacterBody2D
 	[Export]
 	public float Speed = 150.0f;
 
+	[Export]
+	public int Health { get; private set; } = 1;
+
 	[Signal]
 	public delegate void DiedEventHandler();
 
 	private CharacterBody2D _target;
+	private NavigationAgent2D _navAgent;
 
 	public override void _Ready()
 	{
+		_navAgent = GetNode<NavigationAgent2D>("NavigationAgent2D");
+		
+		// Connect avoidance callback
+		_navAgent.VelocityComputed += OnVelocityComputed;
+
 		// Default behavior: find nearest player
 		_target = GetTree().GetFirstNodeInGroup("players") as CharacterBody2D;
+	}
+
+	public void TakeDamage(int amount)
+	{
+		Health -= amount;
+		if (Health <= 0)
+		{
+			Die();
+		}
+	}
+
+	// Logic for dying is internal to the Entity, triggered by state change (Health <= 0)
+	private void Die()
+	{
+		EmitSignal(SignalName.Died);
+		QueueFree();
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -35,22 +60,35 @@ public partial class Enemy : CharacterBody2D
 			}
 		}
 
-		Vector2 direction = (_target.GlobalPosition - GlobalPosition).Normalized();
-		Velocity = direction * Speed;
-		Rotation = direction.Angle();
+		// Update navigation target
+		_navAgent.TargetPosition = _target.GlobalPosition;
 
+		// Get next point in path
+		Vector2 nextPathPosition = _navAgent.GetNextPathPosition();
+		Vector2 currentAgentPosition = GlobalPosition;
+		
+		// Calculate desired velocity
+		Vector2 newVelocity = (nextPathPosition - currentAgentPosition).Normalized() * Speed;
+		
+		// Rotate towards movement
+		if (newVelocity != Vector2.Zero)
+		{
+			Rotation = newVelocity.Angle();
+		}
+
+		// Send to avoidance system (this will trigger OnVelocityComputed)
+		_navAgent.Velocity = newVelocity;
+	}
+
+	private void OnVelocityComputed(Vector2 safeVelocity)
+	{
+		Velocity = safeVelocity;
 		MoveAndSlide();
 	}
 
 	public void SetTarget(CharacterBody2D target)
 	{
 		_target = target;
-	}
-
-	public void Die()
-	{
-		EmitSignal(SignalName.Died);
-		QueueFree();
 	}
 
 	private void _on_damage_area_body_entered(Node2D body)

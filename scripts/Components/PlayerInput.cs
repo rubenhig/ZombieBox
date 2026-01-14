@@ -10,10 +10,7 @@ public partial class PlayerInput : Node
     public Vector2 AimDirection { get; set; } = Vector2.Right;
 
     [Export]
-    public bool IsShooting { get; set; } = false;
-
-    [Export]
-    public bool IsSwitchingWeapon { get; set; } = false;
+    public bool IsShooting { get; set; } = false; // Kept for automatic weapons (state)
 
     private Player _player;
 
@@ -24,6 +21,7 @@ public partial class PlayerInput : Node
 
     public override void _Process(double delta)
     {
+        // Only read input if this node belongs to the local player
         if (IsMultiplayerAuthority())
         {
             ReadInput();
@@ -41,12 +39,15 @@ public partial class PlayerInput : Node
 
         IsShooting = Input.IsActionPressed("shoot");
         
+        // Direct Action Call (Command Pattern)
         if (Input.IsActionJustPressed("shoot"))
         {
-            // NEW SYSTEM: Call command directly
             _player.TryShoot(); 
         }
 
-        IsSwitchingWeapon = Input.IsActionJustPressed("switch_weapon");
+        if (Input.IsActionJustPressed("switch_weapon"))
+        {
+            _player.TrySwitchWeapon();
+        }
     }
 }

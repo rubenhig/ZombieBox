@@ -56,6 +56,19 @@ public partial class Player : CharacterBody2D
         DoFire();
     }
 
+    // Called by PlayerInput (Local Client)
+    public void TrySwitchWeapon()
+    {
+        RpcId(1, nameof(RequestSwitchWeapon));
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+    private void RequestSwitchWeapon()
+    {
+        if (!Multiplayer.IsServer()) return;
+        SwitchWeapon();
+    }
+
     // Called by ServerController (MachineGun) or RPC (Pistol)
     public void DoFire()
     {

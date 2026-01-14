@@ -19,7 +19,7 @@ public partial class Master : Node
 
     public void LoadGame()
     {
-        DeferredLoad("res://scenes/Main.tscn");
+        DeferredLoad("res://scenes/GameSession.tscn");
     }
 
     private void DeferredLoad(string path)

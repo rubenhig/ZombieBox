@@ -1,0 +1,67 @@
+[gd_scene load_steps=3 format=3 uid="uid://cgr6a2x624bqp"]
+
+[ext_resource type="Script" path="res://scripts/GameManager.cs" id="1_manager"]
+[ext_resource type="Script" path="res://scripts/WaveManager.cs" id="2_wave"]
+[ext_resource type="PackedScene" uid="uid://b2w5xpg8iuxf1" path="res://scenes/enemy.tscn" id="3_enemy"]
+[ext_resource type="PackedScene" uid="uid://c5w5xpg8iuxf1" path="res://scenes/HUD.tscn" id="4_hud"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_default"]
+vertices = PackedVector2Array(2000, 2000, -500, 2000, -500, -500, 2000, -500)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(-500, -500, 2000, -500, 2000, 2000, -500, 2000)])
+
+[node name="GameSession" type="Node"]
+script = ExtResource("1_manager")
+
+[node name="Managers" type="Node" parent="."]
+
+[node name="WaveManager" type="Node" parent="Managers"]
+script = ExtResource("2_wave")
+EnemyScene = ExtResource("3_enemy")
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="Managers"]
+_spawnable_scenes = PackedStringArray("res://scenes/player.tscn")
+spawn_path = NodePath("../../World/Entities/Players")
+
+[node name="EnemySpawner" type="MultiplayerSpawner" parent="Managers"]
+_spawnable_scenes = PackedStringArray("res://scenes/enemy.tscn")
+spawn_path = NodePath("../../World/Entities/Enemies")
+
+[node name="BulletSpawner" type="MultiplayerSpawner" parent="Managers"]
+_spawnable_scenes = PackedStringArray("res://scenes/bullet.tscn")
+spawn_path = NodePath("../../World/Entities/Bullets")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="NavigationRegion" type="NavigationRegion2D" parent="World"]
+navigation_polygon = SubResource("NavigationPolygon_default")
+
+[node name="SpawnPoints" type="Node" parent="World"]
+
+[node name="SpawnPoint1" type="Marker2D" parent="World/SpawnPoints"]
+position = Vector2(100, 100)
+
+[node name="SpawnPoint2" type="Marker2D" parent="World/SpawnPoints"]
+position = Vector2(1180, 100)
+
+[node name="SpawnPoint3" type="Marker2D" parent="World/SpawnPoints"]
+position = Vector2(100, 620)
+
+[node name="SpawnPoint4" type="Marker2D" parent="World/SpawnPoints"]
+position = Vector2(1180, 620)
+
+[node name="Entities" type="Node2D" parent="World"]
+y_sort_enabled = true
+
+[node name="Players" type="Node2D" parent="World/Entities"]
+y_sort_enabled = true
+
+[node name="Enemies" type="Node2D" parent="World/Entities"]
+y_sort_enabled = true
+
+[node name="Bullets" type="Node2D" parent="World/Entities"]
+y_sort_enabled = true
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UI" instance=ExtResource("4_hud")]

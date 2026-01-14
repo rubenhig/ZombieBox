@@ -9,6 +9,9 @@ public partial class Bullet : Area2D
 	[Export]
 	public float Speed = 600.0f;
 
+	[Export]
+	public int Damage = 1;
+
 	private Vector2 _direction = Vector2.Zero;
 
 	public void SetDirection(Vector2 direction)
@@ -34,8 +37,15 @@ public partial class Bullet : Area2D
 	{
 		if (body.IsInGroup("enemies"))
 		{
-			EmitSignal(SignalName.EnemyKilled);
-			body.QueueFree();
+			// Notify shooter (Player) that we hit something
+			EmitSignal(SignalName.EnemyKilled); 
+			
+			// Apply damage using Domain Interface
+			if (body is Enemy enemy)
+			{
+				enemy.TakeDamage(Damage);
+			}
+			
 			QueueFree();
 		}
 	}

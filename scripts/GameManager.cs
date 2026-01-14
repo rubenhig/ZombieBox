@@ -24,8 +24,8 @@ public partial class GameManager : Node
 		// and provide the containers for spawning
 		var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
 		
-		var playersNode = GetNode("Game/Players");
-		var enemiesNode = GetNode("Game/Enemies");
+		var playersNode = GetNode("World/Entities/Players");
+		var enemiesNode = GetNode("World/Entities/Enemies");
 		
 		if (networkManager != null)
 		{
@@ -54,8 +54,8 @@ public partial class GameManager : Node
 		GD.Print("GameManager: Game Over!");
 		EmitSignal(SignalName.GameEnded);
 
-		// Stop spawning enemies - Fix path: GameManager is on "Main", WaveManager is child of "Game"
-		var waveManager = GetNodeOrNull<WaveManager>("Game/WaveManager"); 
+		// Stop spawning enemies
+		var waveManager = GetNodeOrNull<WaveManager>("Managers/WaveManager"); 
 		if (waveManager != null)
 		{
 			waveManager.StopWaves();
