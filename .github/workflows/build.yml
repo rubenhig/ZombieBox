@@ -1,0 +1,70 @@
+name: Build Game
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GODOT_VERSION: 4.2.1 # Using a stable version for CI reliability, adjust if needed
+  EXPORT_NAME: ZombieBox
+
+jobs:
+  export-windows:
+    name: Windows Export
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.2.1 # Image with Godot & Templates pre-installed (standard)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build C# Solution
+        run: dotnet build -c Release
+
+      - name: Create Build Directory
+        run: mkdir -v -p build/windows
+
+      - name: Export Windows
+        run: godot --headless --verbose --export-release "Windows Desktop" build/windows/$EXPORT_NAME.exe
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: build/windows
+
+  export-macos:
+    name: macOS Export
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.2.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build C# Solution
+        run: dotnet build -c Release
+
+      - name: Create Build Directory
+        run: mkdir -v -p build/macos
+
+      - name: Export macOS
+        run: godot --headless --verbose --export-release "macOS" build/macos/$EXPORT_NAME.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: build/macos
