@@ -27,7 +27,10 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Build C# Solution
-        run: dotnet build -c Release
+        run: dotnet build -c ExportRelease
+
+      - name: Create Build Directory
+        run: mkdir -v -p build/windows
 
       - name: Create Build Directory
         run: mkdir -v -p build/windows
@@ -56,7 +59,10 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Build C# Solution
-        run: dotnet build -c Release
+        run: dotnet build -c ExportRelease
+
+      - name: Create Build Directory
+        run: mkdir -v -p build/windows
 
       - name: Create Build Directory
         run: mkdir -v -p build/macos
