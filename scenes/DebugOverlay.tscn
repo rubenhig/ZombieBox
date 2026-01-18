@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=3 uid="uid://debug_overlay"]
+
+[ext_resource type="Script" path="res://scripts/Core/DebugOverlay.cs" id="1_debug"]
+
+[node name="DebugOverlay" type="CanvasLayer"]
+layer = 128
+script = ExtResource("1_debug")
+
+[node name="StatsContainer" type="MarginContainer" parent="."]
+offset_right = 200.0
+offset_bottom = 120.0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+
+[node name="Panel" type="Panel" parent="StatsContainer"]
+layout_mode = 2
+self_modulate = Color(0, 0, 0, 0.490196)
+
+[node name="Label" type="Label" parent="StatsContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "FPS: 60
+Mem: 0 MB
+Entities: 0"
