@@ -2,7 +2,8 @@
 
 [ext_resource type="Script" path="res://scripts/Enemy.cs" id="1_abcde"]
 [ext_resource type="SceneReplicationConfig" uid="uid://c987654321" path="res://scenes/physics_replication_config.tres" id="2_sync"]
-[ext_resource type="Texture2D" uid="uid://b11ge5rtwrk65" path="res://icon.svg" id="3_icon"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/zoimbie1_hold.png" id="3_tex"]
+[ext_resource type="Script" path="res://scripts/Components/EnemyVisuals.cs" id="4_vis"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_Main"]
 radius = 20.0
@@ -20,6 +21,10 @@ script = ExtResource("1_abcde")
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = ExtResource("2_sync")
 
+[node name="EnemyVisuals" type="Node" parent="."]
+script = ExtResource("4_vis")
+EnemyRef = NodePath("..")
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_Main")
 
@@ -29,8 +34,7 @@ radius = 20.0
 neighbor_distance = 100.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(1, 0, 0, 1)
-texture = ExtResource("3_icon")
+texture = ExtResource("3_tex")
 
 [node name="DamageArea" type="Area2D" parent="."]
 collision_layer = 0

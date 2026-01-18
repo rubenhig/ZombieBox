@@ -7,6 +7,9 @@
 [ext_resource type="SceneReplicationConfig" path="res://scenes/player_server_sync.tres" id="4_sync_server"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/player_input_sync.tres" id="5_sync_input"]
 [ext_resource type="PackedScene" uid="uid://c8k2xwx21s5x1" path="res://scenes/bullet.tscn" id="6_bullet"]
+[ext_resource type="Script" path="res://scripts/Components/PlayerVisuals.cs" id="7_visuals"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_gun.png" id="8_tex_pistol"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_machine.png" id="9_tex_machine"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_zprhn"]
 radius = 38.0
@@ -30,8 +33,14 @@ script = ExtResource("3_input")
 [node name="InputSynchronizer" type="MultiplayerSynchronizer" parent="PlayerInput"]
 replication_config = ExtResource("5_sync_input")
 
+[node name="PlayerVisuals" type="Node" parent="."]
+script = ExtResource("7_visuals")
+PlayerRef = NodePath("..")
+TexturePistol = ExtResource("8_tex_pistol")
+TextureMachineGun = ExtResource("9_tex_machine")
+
 [node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_c2vsc")
+texture = ExtResource("8_tex_pistol")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_zprhn")
