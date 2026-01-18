@@ -13,18 +13,25 @@ public partial class GameManager : Node
 	[Export]
 	public WaveManager WaveManager { get; set; }
 
-	public bool IsGameOver { get; private set; } = false;
+	// public bool IsGameOver { get; private set; } = false; // Replaced by FSM
 
 	private HUD _hud;
+	private GameStateManager _gameStateManager;
 
 	public override void _Ready()
 	{
+		GD.Print("GameManager: _Ready started.");
+		
 		// Locate HUD (Still magic string for UI, acceptable or can be exported too)
 		_hud = GetNode<HUD>("UI/HUD");
 		if (_hud != null)
 		{
-			GameEnded += _hud.ShowGameOver;
+			// Connect signal to HUD, but logic is driven by FSM
+			GameEnded += _hud.ShowGameOver; 
 		}
+
+		_gameStateManager = GetNode<GameStateManager>("Managers/GameStateManager");
+		GD.Print($"GameManager: GameStateManager found: {_gameStateManager != null}");
 
 		// Load Level
 		if (LevelScene == null)
@@ -33,8 +40,20 @@ public partial class GameManager : Node
 		}
 
 		var levelContainer = GetNode("World/Level");
+		GD.Print("GameManager: Instantiating level...");
 		var levelNode = LevelScene.Instantiate();
 		levelContainer.AddChild(levelNode);
+		GD.Print("GameManager: Level instantiated.");
+
+		// Initialize FSM with World node
+		if (_gameStateManager != null)
+		{
+			var world = GetNode("World");
+			GD.Print("GameManager: Initializing FSM with World...");
+			_gameStateManager.Initialize(world);
+			// Start game immediately for now (transitions to Playing)
+			_gameStateManager.SetState(GameState.Playing);
+		}
 
 		// Magic String for container is acceptable as it's internal to GameSession structure
 		var playersNode = GetNode("World/Entities/Players");
@@ -45,6 +64,7 @@ public partial class GameManager : Node
 			// Safe access via property
 			if (WaveManager != null)
 			{
+				GD.Print("GameManager: Configuring WaveManager...");
 				WaveManager.Configure(level.SpawnPoints, enemiesNode);
 			}
 		}
@@ -58,9 +78,12 @@ public partial class GameManager : Node
 		
 		if (networkManager != null)
 		{
+			GD.Print("GameManager: Notifying NetworkManager...");
 			networkManager.PlayerSpawned += OnPlayerSpawned;
 			networkManager.OnGameLevelLoaded(playersNode, enemiesNode);
 		}
+		
+		GD.Print("GameManager: _Ready completed.");
 	}
 
 	private void OnPlayerSpawned(Player player)
@@ -77,16 +100,14 @@ public partial class GameManager : Node
 
 	public void GameOver()
 	{
-		if (IsGameOver) return;
-		IsGameOver = true;
+		GD.Print("GameManager: Triggering Game Over via FSM");
 		
-		GD.Print("GameManager: Game Over!");
-		EmitSignal(SignalName.GameEnded);
-
-		// Stop spawning enemies
-		if (WaveManager != null)
+		if (_gameStateManager != null)
 		{
-			WaveManager.StopWaves();
+			_gameStateManager.SetState(GameState.GameOver);
 		}
+
+		// Legacy signal for HUD (until HUD subscribes to FSM)
+		EmitSignal(SignalName.GameEnded);
 	}
 }

@@ -35,15 +35,16 @@ To avoid coupling Entities with the Manager, we utilize Godot's native **Process
 ## 3. Implementation Steps
 
 ### Phase 1: Core FSM
-- [ ] Create `scripts/Core/GameStateManager.cs`.
-- [ ] Define the `GameState` enum and signals.
-- [ ] Add `GameStateManager` node to `GameSession.tscn` under `Managers`.
-- [ ] Inject reference to the `World` node into `GameStateManager`.
+- [x] Create `scripts/Core/GameStateManager.cs`.
+- [x] Define the `GameState` enum and signals.
+- [x] Add `GameStateManager` node to `GameSession.tscn` under `Managers`.
+- [x] Inject reference to the `World` node into `GameStateManager`.
 
 ### Phase 2: Wiring & UI
-- [ ] Update `GameManager.cs` to notify `GameStateManager` on death.
-- [ ] Connect `GameStateManager` signals to `HUD` to show/hide panels (Game Over, Pause).
-- [ ] Implement `SetState(GameState)` logic to toggle `World.ProcessMode`.
+- [x] Update `GameManager.cs` to notify `GameStateManager` on death.
+- [x] Connect `GameStateManager` signals to `HUD` to show/hide panels.
+- [x] Implement `SetState(GameState)` logic to toggle `World.ProcessMode`.
+- [x] Fix: Use `CallDeferred` for `ProcessMode` changes to avoid physics engine locks.
 
 ### Phase 3: Multiplayer Sync
 - [ ] Add `MultiplayerSynchronizer` to `GameStateManager` to ensure the global state (Playing/GameOver) is consistent across all clients.

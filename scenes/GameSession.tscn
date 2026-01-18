@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/GameManager.cs" id="1_manager"]
 [ext_resource type="Script" path="res://scripts/WaveManager.cs" id="2_wave"]
+[ext_resource type="Script" path="res://scripts/Core/GameStateManager.cs" id="3_gamestate"]
 [ext_resource type="PackedScene" uid="uid://b2w5xpg8iuxf1" path="res://scenes/enemy.tscn" id="3_enemy"]
 [ext_resource type="PackedScene" uid="uid://c5w5xpg8iuxf1" path="res://scenes/HUD.tscn" id="4_hud"]
 
@@ -15,6 +16,9 @@ script = ExtResource("1_manager")
 WaveManager = NodePath("Managers/WaveManager")
 
 [node name="Managers" type="Node" parent="."]
+
+[node name="GameStateManager" type="Node" parent="Managers"]
+script = ExtResource("3_gamestate")
 
 [node name="WaveManager" type="Node" parent="Managers"]
 script = ExtResource("2_wave")

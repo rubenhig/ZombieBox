@@ -24,8 +24,14 @@ public partial class PlayerVisuals : Node
     {
         if (PlayerRef == null)
         {
-            GD.PrintErr("PlayerVisuals: PlayerRef is not assigned!");
-            return;
+            // Fallback: Try to find parent
+            PlayerRef = GetParentOrNull<Player>();
+            
+            if (PlayerRef == null)
+            {
+                GD.PrintErr("PlayerVisuals: PlayerRef is not assigned and parent is not Player!");
+                return;
+            }
         }
 
         _sprite = PlayerRef.GetNode<Sprite2D>("Sprite2D");

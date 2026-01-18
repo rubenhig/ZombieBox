@@ -17,8 +17,14 @@ public partial class EnemyVisuals : Node
     {
         if (EnemyRef == null)
         {
-            GD.PrintErr("EnemyVisuals: EnemyRef is not assigned!");
-            return;
+             // Fallback
+            EnemyRef = GetParentOrNull<Enemy>();
+            
+            if (EnemyRef == null)
+            {
+                GD.PrintErr("EnemyVisuals: EnemyRef is not assigned!");
+                return;
+            }
         }
 
         _sprite = EnemyRef.GetNode<Sprite2D>("Sprite2D");
