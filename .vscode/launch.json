@@ -11,14 +11,20 @@
             "request": "launch"
         },
         {
-            "name": "Launch",
+            "name": "Run Tests",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "program": "/Users/rubenhig/Downloads/Godot_mono.app/Contents/MacOS/Godot",
             "args": [
+                "--headless",
                 "--path",
-                "${workspaceFolder}"
+                "${workspaceFolder}",
+                "-s",
+                "addons/gdUnit4/bin/GdUnitCmdTool.gd",
+                "-a",
+                "test/",
+                "--ignoreHeadlessMode"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

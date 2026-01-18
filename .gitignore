@@ -16,3 +16,6 @@ Thumbs.db
 
 # VSCode (Optional: Uncomment if you want to keep local settings private)
 # .vscode/
+
+# GdUnit4 reports
+reports/
