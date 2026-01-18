@@ -7,25 +7,54 @@ public partial class GameManager : Node
 	[Signal]
 	public delegate void GameEndedEventHandler();
 
+	[Export]
+	public PackedScene LevelScene { get; set; }
+
+	[Export]
+	public WaveManager WaveManager { get; set; }
+
 	public bool IsGameOver { get; private set; } = false;
 
 	private HUD _hud;
 
 	public override void _Ready()
 	{
-		// Locate HUD
+		// Locate HUD (Still magic string for UI, acceptable or can be exported too)
 		_hud = GetNode<HUD>("UI/HUD");
 		if (_hud != null)
 		{
 			GameEnded += _hud.ShowGameOver;
 		}
 
-		// Notify NetworkManager that the game level is ready
-		// and provide the containers for spawning
-		var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
-		
+		// Load Level
+		if (LevelScene == null)
+		{
+			LevelScene = GD.Load<PackedScene>("res://scenes/maps/Arena01.tscn");
+		}
+
+		var levelContainer = GetNode("World/Level");
+		var levelNode = LevelScene.Instantiate();
+		levelContainer.AddChild(levelNode);
+
+		// Magic String for container is acceptable as it's internal to GameSession structure
 		var playersNode = GetNode("World/Entities/Players");
 		var enemiesNode = GetNode("World/Entities/Enemies");
+
+		if (levelNode is Level level)
+		{
+			// Safe access via property
+			if (WaveManager != null)
+			{
+				WaveManager.Configure(level.SpawnPoints, enemiesNode);
+			}
+		}
+		else
+		{
+			GD.PrintErr("GameManager: Loaded level does not have Level script attached!");
+		}
+		
+		// Notify NetworkManager that the game level is ready
+		var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
 		
 		if (networkManager != null)
 		{
@@ -55,10 +84,9 @@ public partial class GameManager : Node
 		EmitSignal(SignalName.GameEnded);
 
 		// Stop spawning enemies
-		var waveManager = GetNodeOrNull<WaveManager>("Managers/WaveManager"); 
-		if (waveManager != null)
+		if (WaveManager != null)
 		{
-			waveManager.StopWaves();
+			WaveManager.StopWaves();
 		}
 	}
 }

@@ -25,8 +25,18 @@ public partial class WaveManager : Node
 
     public override void _Ready()
     {
-        _spawnPointsContainer = GetNode("../../World/SpawnPoints");
-        _enemiesContainer = GetNode("../../World/Entities/Enemies");
+        _waveTimer = new Timer();
+        AddChild(_waveTimer);
+        _waveTimer.WaitTime = TimeBetweenWaves;
+        _waveTimer.OneShot = true; // Timer is now for cooldown between waves
+        _waveTimer.Timeout += StartNextWave; // When cooldown ends, start wave
+    }
+
+    public void Configure(Node spawnPointsContainer, Node enemiesContainer)
+    {
+        _enemiesContainer = enemiesContainer;
+        _spawnPointsContainer = spawnPointsContainer;
+        _spawnPoints.Clear();
 
         foreach (Node child in _spawnPointsContainer.GetChildren())
         {
@@ -36,12 +46,7 @@ public partial class WaveManager : Node
             }
         }
 
-        _waveTimer = new Timer();
-        AddChild(_waveTimer);
-        _waveTimer.WaitTime = TimeBetweenWaves;
-        _waveTimer.OneShot = true; // Timer is now for cooldown between waves
-        _waveTimer.Timeout += StartNextWave; // When cooldown ends, start wave
-        
+        // Start logic now that we are configured
         // Initial delay before the first wave starts to allow everything to initialize
         GD.Print("WaveManager: Waiting 2 seconds before first wave...");
         GetTree().CreateTimer(2.0f).Timeout += StartWaveLogic;

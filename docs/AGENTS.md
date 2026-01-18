@@ -6,6 +6,15 @@ This document serves as the **Instruction Manual** for coding in this repository
 
 ---
 
+## 0. Interaction Protocol: Plan First
+Before implementing any complex feature, refactor, or bug fix, the Agent MUST:
+1.  **Analyze:** Explain the current state and the problem/goal.
+2.  **Design:** Propose a solution strategy (Architecture, Patterns).
+3.  **Plan:** List the specific steps/files to be modified.
+4.  **Confirm:** Ask for user approval before executing code changes.
+
+---
+
 ## 1. Golden Rule: "Everything is Multiplayer"
 *   **Concept:** There is no "Singleplayer code". Singleplayer is simply a Local Server with 1 client.
 *   **Implication:** Never write code that assumes "local only" logic for gameplay. Always check `Multiplayer.IsServer()` for game state changes and `IsMultiplayerAuthority()` for input.
