@@ -96,13 +96,6 @@ public partial class NetworkManager : Node
         GetNode<Master>("/root/Master").LoadGame();
     }
 
-    // Deprecated methods replaced by the ones above
-    [Obsolete("Use StartDedicatedServer instead")]
-    public void StartServer() => StartDedicatedServer(Port);
-    
-    [Obsolete("Use StartClient instead")]
-    public void JoinServer(string ipAddress) => StartClient(ipAddress, Port);
-
     private void OnPeerConnected(long id)
     {
         GD.Print("Player connected: " + id);
