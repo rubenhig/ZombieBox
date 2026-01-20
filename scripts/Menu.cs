@@ -6,6 +6,7 @@ public partial class Menu : Control
     private Button _btnSinglePlayer;
     private Button _btnMultiplayer;
     private Button _btnQuit;
+    private LineEdit _ipInput;
 
     public override void _Ready()
     {
@@ -14,6 +15,7 @@ public partial class Menu : Control
         _btnSinglePlayer = GetNode<Button>("CenterContainer/VBoxContainer/BtnSinglePlayer");
         _btnMultiplayer = GetNode<Button>("CenterContainer/VBoxContainer/BtnMultiplayer");
         _btnQuit = GetNode<Button>("CenterContainer/VBoxContainer/BtnQuit");
+        _ipInput = GetNode<LineEdit>("CenterContainer/VBoxContainer/IpAddressInput");
 
         // Connect signals
         _btnSinglePlayer.Pressed += OnSinglePlayerPressed;
@@ -31,9 +33,12 @@ public partial class Menu : Control
 
     private void OnMultiplayerPressed()
     {
-        GD.Print("Joining Online Session (localhost)...");
+        string ip = _ipInput.Text;
+        if (string.IsNullOrWhiteSpace(ip)) ip = "127.0.0.1";
+
+        GD.Print($"Joining Online Session ({ip})...");
         var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
-        networkManager.StartClient("127.0.0.1", 7777);
+        networkManager.StartClient(ip, 7777);
     }
 
     private void OnQuitPressed()

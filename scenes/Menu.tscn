@@ -23,16 +23,23 @@ grow_vertical = 2
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 64
-text = "ZombieBox"
-horizontal_alignment = 1
+text = "ZOMBIE BOX"
+hum_alignment = 1
+
+[node name="IpAddressInput" type="LineEdit" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+placeholder_text = "Server IP (e.g. 127.0.0.1)"
+text = "127.0.0.1"
+alignment = 1
 
 [node name="BtnSinglePlayer" type="Button" parent="CenterContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
-text = "Single Player"
+text = "Single Player (Offline)"
 
 [node name="BtnMultiplayer" type="Button" parent="CenterContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 50)
