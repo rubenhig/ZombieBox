@@ -45,10 +45,14 @@ public partial class WaveManager : Node
                 _spawnPoints.Add(marker);
             }
         }
+    }
 
-        // Start logic now that we are configured
-        // Initial delay before the first wave starts to allow everything to initialize
+    public void StartWaves()
+    {
         GD.Print("WaveManager: Waiting 2 seconds before first wave...");
+        // Use a timer node instead of CreateTimer to ensure it respects pause state? 
+        // CreateTimer respects SceneTree.Paused if configured, but here we want to control it manually.
+        // Let's just trigger the timer we already have or create a one-shot.
         GetTree().CreateTimer(2.0f).Timeout += StartWaveLogic;
     }
 

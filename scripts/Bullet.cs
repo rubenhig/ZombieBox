@@ -30,11 +30,17 @@ public partial class Bullet : Area2D
 
 	private void _on_screen_exited()
 	{
-		QueueFree();
+		if (Multiplayer.IsServer())
+		{
+			QueueFree();
+		}
 	}
 
 	private void _on_body_entered(Node2D body)
 	{
+		// Only server processes hit logic and destruction
+		if (!Multiplayer.IsServer()) return;
+
 		if (body.IsInGroup("enemies"))
 		{
 			// Notify shooter (Player) that we hit something

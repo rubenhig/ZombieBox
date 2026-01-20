@@ -31,9 +31,9 @@ public partial class Menu : Control
 
     private void OnMultiplayerPressed()
     {
-        // Placeholder for now, or could show Host/Join buttons
-        GD.Print("Multiplayer clicked - Feature coming soon!");
-        // For now, let's just log it. Later this will toggle a visibility of a Host/Join sub-menu.
+        GD.Print("Joining Online Session (localhost)...");
+        var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
+        networkManager.StartClient("127.0.0.1", 7777);
     }
 
     private void OnQuitPressed()

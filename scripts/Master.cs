@@ -8,8 +8,69 @@ public partial class Master : Node
 
     public override void _Ready()
     {
-        // Start by loading the Menu
-        LoadMenu();
+        ParseCmdArgs();
+    }
+
+    private void ParseCmdArgs()
+    {
+        // Get user-provided arguments after the '--' separator
+        var args = OS.GetCmdlineUserArgs();
+        var logMsg = "Master: User CMD Args received: " + string.Join(" ", args);
+        GD.Print(logMsg);
+        
+        // Debug file log
+        try { System.IO.File.WriteAllText("server_status.txt", logMsg + "\n"); } catch {}
+
+        bool isServer = false;
+        int port = 7777;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--server")
+            {
+                isServer = true;
+            }
+            else if (args[i] == "--port" && i + 1 < args.Length)
+            {
+                int.TryParse(args[i + 1], out port);
+            }
+        }
+
+        if (isServer)
+        {
+            var serverMsg = $"Master: Starting as Dedicated Server on port {port}";
+            GD.Print(serverMsg);
+            try { System.IO.File.AppendAllText("server_status.txt", serverMsg + "\n"); } catch {}
+            
+            var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
+            
+            // We will add this method to NetworkManager in the next step
+            networkManager.StartDedicatedServer(port);
+            
+            // Load game session directly
+            LoadGame();
+        }
+        else
+        {
+            // Normal client start
+            LoadMenu();
+
+            // Auto-connect hack for testing
+            foreach (var arg in args)
+            {
+                if (arg == "--client-test")
+                {
+                    GD.Print("Master: Auto-connecting via --client-test...");
+                    CallDeferred(nameof(AutoConnect));
+                }
+            }
+        }
+    }
+
+    private void AutoConnect()
+    {
+        var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
+        networkManager.StartClient("127.0.0.1", 7777);
     }
 
     public void LoadMenu()

@@ -49,6 +49,7 @@ public partial class PlayerServerController : Node
 
         if (direction != Vector2.Zero)
         {
+            GD.Print($"Server Controller Moving: {direction}"); 
             _player.Velocity = direction.Normalized() * _player.Speed;
             _player.Rotation = _input.AimDirection.Angle();
         }

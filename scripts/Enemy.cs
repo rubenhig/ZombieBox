@@ -28,6 +28,9 @@ public partial class Enemy : CharacterBody2D
 
 	public void TakeDamage(int amount)
 	{
+		// Authoritative check
+		if (!Multiplayer.IsServer()) return;
+
 		Health -= amount;
 		if (Health <= 0)
 		{
@@ -38,14 +41,16 @@ public partial class Enemy : CharacterBody2D
 	// Logic for dying is internal to the Entity, triggered by state change (Health <= 0)
 	private void Die()
 	{
+		if (!Multiplayer.IsServer()) return;
+		
 		EmitSignal(SignalName.Died);
 		QueueFree();
 	}
 
 	public override void _PhysicsProcess(double delta)
 	{
-		// Only server should process physics in a fully authoritative model
-		// For now, we keep it simple for local play
+		// Authoritative physics: only calculated on server
+		if (!Multiplayer.IsServer()) return;
 		
 		if (_target == null || !IsInstanceValid(_target))
 		{
@@ -82,6 +87,9 @@ public partial class Enemy : CharacterBody2D
 
 	private void OnVelocityComputed(Vector2 safeVelocity)
 	{
+		// Safe velocity also only matters on server
+		if (!Multiplayer.IsServer()) return;
+
 		Velocity = safeVelocity;
 		MoveAndSlide();
 	}
@@ -93,6 +101,8 @@ public partial class Enemy : CharacterBody2D
 
 	private void _on_damage_area_body_entered(Node2D body)
 	{
+		if (!Multiplayer.IsServer()) return;
+
 		if (body is Player player)
 		{
 			player.TakeDamage(1);

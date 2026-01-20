@@ -14,7 +14,23 @@ public partial class GameStateManager : Node
     [Signal]
     public delegate void StateChangedEventHandler(long newState);
 
-    public GameState CurrentState { get; private set; } = GameState.WaitingToStart;
+    private GameState _currentState = GameState.WaitingToStart;
+
+    [Export]
+    public GameState CurrentState
+    {
+        get => _currentState;
+        set
+        {
+            if (_currentState != value)
+            {
+                _currentState = value;
+                GD.Print($"GameStateManager: State synced/changed to {_currentState}");
+                CallDeferred(nameof(ApplyStateLogic), (long)_currentState);
+                EmitSignal(SignalName.StateChanged, (long)_currentState);
+            }
+        }
+    }
 
     private Node _worldNode;
 
@@ -22,11 +38,24 @@ public partial class GameStateManager : Node
     public void Initialize(Node worldNode)
     {
         _worldNode = worldNode;
-        SetState(GameState.WaitingToStart);
+        // Don't reset state here if it was already synced by network!
+        // Only set if we are server/offline
+        if (Multiplayer.IsServer())
+        {
+            SetState(GameState.WaitingToStart);
+        }
+        else
+        {
+            // Apply initial state received (or default)
+            ApplyStateLogic((long)CurrentState);
+        }
     }
 
     public void SetState(GameState newState)
     {
+        // Only server can set state
+        if (!Multiplayer.IsServer()) return;
+
         // Validation logic can go here (e.g., prevent Paused in Multiplayer)
         if (Multiplayer.MultiplayerPeer != null && 
             !(Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer) && 
@@ -36,13 +65,8 @@ public partial class GameStateManager : Node
             return;
         }
 
+        // Setting the property triggers the logic locally and updates the value for sync
         CurrentState = newState;
-        GD.Print($"GameStateManager: State changed to {CurrentState}");
-        
-        // Defer state application to avoid physics locking errors
-        CallDeferred(nameof(ApplyStateLogic), (long)newState);
-        
-        EmitSignal(SignalName.StateChanged, (long)newState);
     }
 
     private void ApplyStateLogic(long stateIdx)

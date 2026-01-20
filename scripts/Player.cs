@@ -25,6 +25,26 @@ public partial class Player : CharacterBody2D
     private Timer _shootTimer;
     private float _machineGunFireRate = 5.0f; // Shots per second
 
+    public override void _EnterTree()
+    {
+        // 1. Player Body authority is always Server (1)
+        SetMultiplayerAuthority(1);
+
+        // 2. Player Input authority depends on the node name (which is the Peer ID)
+        // Note: GetNode might fail if children are not ready yet in EnterTree? 
+        // In Godot 4, children EnterTree happens after parent EnterTree but before Ready.
+        // Let's use GetNodeOrNull to be safe, though packed scenes usually have children.
+        var input = GetNodeOrNull<PlayerInput>("PlayerInput");
+        if (input != null && int.TryParse(Name, out int authorityId))
+        {
+            input.SetMultiplayerAuthority(authorityId);
+            if (authorityId == Multiplayer.GetUniqueId())
+            {
+                GD.Print($"Player {_EnterTree}: Authority assigned to local client {authorityId}");
+            }
+        }
+    }
+
     public override void _Ready()
     {
         _input = GetNode<PlayerInput>("PlayerInput");

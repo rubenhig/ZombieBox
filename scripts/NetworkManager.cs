@@ -32,12 +32,13 @@ public partial class NetworkManager : Node
         _playersContainer = playersNode;
         GD.Print("NetworkManager: Game level loaded. Containers registered.");
 
-        // If we are starting single player or are the server, we might need to spawn ourselves
-        // For SinglePlayer, ID is 1.
-        if (Multiplayer.IsServer())
+        // If we are starting single player, spawn ourselves
+        if (Multiplayer.IsServer() && Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer)
         {
             SpawnPlayer(1);
         }
+        // In Dedicated Server or Client mode, spawning is handled by PeerConnected signal 
+        // or by the server for us.
     }
 
     public void StartSinglePlayer()
@@ -48,42 +49,59 @@ public partial class NetworkManager : Node
         var peer = new OfflineMultiplayerPeer();
         Multiplayer.MultiplayerPeer = peer;
         
-        GD.Print("Offline server started.");
+        GD.Print("Offline session initialized.");
         
         // Load the game scene through Master. 
-        // We do NOT spawn here. We wait for OnGameLevelLoaded callback.
         GetNode<Master>("/root/Master").LoadGame();
     }
 
-    public void StartServer()
+    public void StartDedicatedServer(int port)
     {
-        var peer = new ENetMultiplayerPeer();
-        var error = peer.CreateServer(Port, MaxPlayers);
-        if (error != Error.Ok)
-        {
-            GD.PrintErr("Failed to create server: " + error);
-            return;
-        }
-
-        Multiplayer.MultiplayerPeer = peer;
-        GD.Print("Server started on port " + Port);
-    }
-
-    public void JoinServer(string ipAddress)
-    {
-        var peer = new ENetMultiplayerPeer();
-        var error = peer.CreateClient(ipAddress, Port);
-        if (error != Error.Ok)
-        {
-            GD.PrintErr("Failed to create client: " + error);
-            return;
-        }
-
-        Multiplayer.MultiplayerPeer = peer;
-        GD.Print("Joining server at " + ipAddress + ":" + Port);
+        GD.Print($"NetworkManager: Attempting to start Dedicated Server on port {port}...");
         
+        var peer = new ENetMultiplayerPeer();
+        var error = peer.CreateServer(port, MaxPlayers);
+        if (error != Error.Ok)
+        {
+            GD.PrintErr("FATAL: Failed to create dedicated server: " + error);
+            return;
+        }
+
+        Multiplayer.MultiplayerPeer = peer;
+        GD.Print($"SUCCESS: Dedicated Server active and listening on port {port}");
+        GD.Print($"Server Peer Status: {peer.GetConnectionStatus()}");
+    }
+
+    public void StartClient(string ipAddress, int port)
+    {
+        GD.Print($"NetworkManager: Attempting to connect to {ipAddress}:{port}...");
+        
+        var peer = new ENetMultiplayerPeer();
+        var error = peer.CreateClient(ipAddress, port);
+        if (error != Error.Ok)
+        {
+            GD.PrintErr("FATAL: Failed to initialize client peer: " + error);
+            return;
+        }
+
+        Multiplayer.MultiplayerPeer = peer;
+        GD.Print("Client peer initialized. Waiting for connection...");
+        
+        // Connect signals to track connection state
+        Multiplayer.ConnectedToServer += () => GD.Print("SUCCESS: Connected to Server!");
+        Multiplayer.ConnectionFailed += () => GD.PrintErr("FATAL: Connection to Server Failed!");
+        Multiplayer.ServerDisconnected += () => GD.PrintErr("FATAL: Disconnected from Server!");
+        
+        // Load the game scene through Master
         GetNode<Master>("/root/Master").LoadGame();
     }
+
+    // Deprecated methods replaced by the ones above
+    [Obsolete("Use StartDedicatedServer instead")]
+    public void StartServer() => StartDedicatedServer(Port);
+    
+    [Obsolete("Use StartClient instead")]
+    public void JoinServer(string ipAddress) => StartClient(ipAddress, Port);
 
     private void OnPeerConnected(long id)
     {

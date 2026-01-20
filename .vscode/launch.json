@@ -11,6 +11,53 @@
             "request": "launch"
         },
         {
+            "name": "Launch Dedicated Server",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "/Users/rubenhig/Downloads/Godot_mono.app/Contents/MacOS/Godot",
+            "args": [
+                "--headless",
+                "--path",
+                "${workspaceFolder}",
+                "--",
+                "--server",
+                "--port",
+                "7777"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Launch Client",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "/Users/rubenhig/Downloads/Godot_mono.app/Contents/MacOS/Godot",
+            "args": [
+                "--path",
+                "${workspaceFolder}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Launch Client 2",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "/Users/rubenhig/Downloads/Godot_mono.app/Contents/MacOS/Godot",
+            "args": [
+                "--path",
+                "${workspaceFolder}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Run Tests",
             "type": "coreclr",
             "request": "launch",
@@ -31,24 +78,16 @@
             "stopAtEntry": false
         },
         {
-            "name": "Launch (Select Scene)",
-            "type": "godot-mono",
-            "request": "launch",
-            "mode": "executable",
-            "preLaunchTask": "build",
-            "executable": "/Users/rubenhig/Downloads/Godot_mono.app/Contents/MacOS/Godot",
-            "executableArguments": [
-                "--path",
-                "${workspaceRoot}",
-                "${command:SelectLaunchScene}"
-            ]
-        },
-        {
             "name": "Attach",
-            "type": "godot-mono",
+            "type": "coreclr",
             "request": "attach",
-            "address": "localhost",
-            "port": 23685
+            "processId": "${command:pickProcess}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Multiplayer Simulation (Server + 2 Clients)",
+            "configurations": ["Launch Dedicated Server", "Launch Client", "Launch Client 2"]
         }
     ]
 }
