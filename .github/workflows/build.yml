@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  GODOT_VERSION: 4.2.1 # Using a stable version for CI reliability, adjust if needed
+  GODOT_VERSION: 4.5.1
   EXPORT_NAME: ZombieBox
   DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1 # Fixes missing ICU package on Linux runners
 
@@ -16,7 +16,7 @@ jobs:
     name: Windows Export
     runs-on: ubuntu-latest
     container:
-      image: barichello/godot-ci:4.2.1 # Image with Godot & Templates pre-installed (standard)
+      image: barichello/godot-ci:mono-4.5.1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,14 +31,11 @@ jobs:
 
       - name: Install Export Templates
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/4.2.1.stable
-          wget https://github.com/godotengine/godot/releases/download/4.2.1-stable/Godot_v4.2.1-stable_mono_export_templates.tpz
-          unzip Godot_v4.2.1-stable_mono_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
-          rm -f Godot_v4.2.1-stable_mono_export_templates.tpz
-
-      - name: Create Build Directory
-        run: mkdir -v -p build/windows
+          mkdir -p ~/.local/share/godot/export_templates/4.5.1.stable
+          wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_mono_export_templates.tpz
+          unzip Godot_v4.5.1-stable_mono_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.5.1.stable/
+          rm -f Godot_v4.5.1-stable_mono_export_templates.tpz
 
       - name: Create Build Directory
         run: mkdir -v -p build/windows
@@ -56,7 +53,7 @@ jobs:
     name: macOS Export
     runs-on: ubuntu-latest
     container:
-      image: barichello/godot-ci:4.2.1
+      image: barichello/godot-ci:mono-4.5.1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,14 +68,11 @@ jobs:
 
       - name: Install Export Templates
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/4.2.1.stable
-          wget https://github.com/godotengine/godot/releases/download/4.2.1-stable/Godot_v4.2.1-stable_mono_export_templates.tpz
-          unzip Godot_v4.2.1-stable_mono_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
-          rm -f Godot_v4.2.1-stable_mono_export_templates.tpz
-
-      - name: Create Build Directory
-        run: mkdir -v -p build/windows
+          mkdir -p ~/.local/share/godot/export_templates/4.5.1.stable
+          wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_mono_export_templates.tpz
+          unzip Godot_v4.5.1-stable_mono_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.5.1.stable/
+          rm -f Godot_v4.5.1-stable_mono_export_templates.tpz
 
       - name: Create Build Directory
         run: mkdir -v -p build/macos
