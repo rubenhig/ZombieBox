@@ -31,10 +31,10 @@ jobs:
 
       - name: Install Export Templates
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/4.5.1.stable
+          mkdir -p ~/.local/share/godot/export_templates/4.5.1.stable.mono
           wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_mono_export_templates.tpz
           unzip Godot_v4.5.1-stable_mono_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.5.1.stable/
+          mv templates/* ~/.local/share/godot/export_templates/4.5.1.stable.mono/
           rm -f Godot_v4.5.1-stable_mono_export_templates.tpz
 
       - name: Create Build Directory
@@ -68,10 +68,10 @@ jobs:
 
       - name: Install Export Templates
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/4.5.1.stable
+          mkdir -p ~/.local/share/godot/export_templates/4.5.1.stable.mono
           wget https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_mono_export_templates.tpz
           unzip Godot_v4.5.1-stable_mono_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.5.1.stable/
+          mv templates/* ~/.local/share/godot/export_templates/4.5.1.stable.mono/
           rm -f Godot_v4.5.1-stable_mono_export_templates.tpz
 
       - name: Create Build Directory
