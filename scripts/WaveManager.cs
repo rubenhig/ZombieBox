@@ -81,7 +81,7 @@ public partial class WaveManager : Node
         // We don't set _zombiesAlive here because SpawnEnemy increments it? 
         // No, better to count successful spawns or just rely on the events.
         // Let's rely on SpawnEnemy connecting the signal.
-        
+
         for (int i = 0; i < enemiesToSpawn; i++)
         {
             SpawnEnemy();
@@ -99,8 +99,8 @@ public partial class WaveManager : Node
         Enemy enemy = EnemyScene.Instantiate<Enemy>();
         enemy.Name = "Enemy_" + Guid.NewGuid().ToString(); // Unique name for network sync
         enemy.GlobalPosition = spawnPoint.GlobalPosition;
-        
-        // Connect to Died signal to track progress
+
+        // Connect to Died event to track progress
         enemy.Died += OnEnemyDied;
         _zombiesAlive++;
 

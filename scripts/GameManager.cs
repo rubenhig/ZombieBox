@@ -1,214 +1,285 @@
 using Godot;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 public partial class GameManager : Node
 {
-	[Signal]
-	public delegate void GameEndedEventHandler();
+    [Signal]
+    public delegate void GameEndedEventHandler();
 
-	[Export]
-	public PackedScene LevelScene { get; set; }
+    [Export]
+    public PackedScene LevelScene { get; set; }
 
-	[Export]
-	public WaveManager WaveManager { get; set; }
+    [Export]
+    public WaveManager WaveManager { get; set; }
 
-	// public bool IsGameOver { get; private set; } = false; // Replaced by FSM
+    [Export]
+    public PackedScene PlayerScene { get; set; }
 
-	private HUD _hud;
-	private LobbyScreen _lobbyScreen;
-	private GameStateManager _gameStateManager;
-	private int _connectedPlayers = 0;
-	private int _playersAlive = 0;
-	private const int MinPlayersToStart = 2; // TODO: Make configurable via args
+    // Peer Tracking
+    private HashSet<long> _connectedPeerIds = new HashSet<long>();
 
-	public override void _Ready()
-	{
-		GD.Print("GameManager: _Ready started.");
-		
-		// Locate HUD (Still magic string for UI, acceptable or can be exported too)
-		_hud = GetNode<HUD>("UI/HUD");
-		// Signal connection moved to OnGameStateChanged for clearer flow
-		
-		// Locate LobbyScreen
-		_lobbyScreen = GetNode<LobbyScreen>("UI/LobbyScreen");
+    // Players Container Reference
+    private Node _playersContainer;
 
-		_gameStateManager = GetNode<GameStateManager>("Managers/GameStateManager");
-		GD.Print($"GameManager: GameStateManager found: {_gameStateManager != null}");
+    private HUD _hud;
+    private LobbyScreen _lobbyScreen;
+    private GameStateManager _gameStateManager;
+    private int _connectedPlayers = 0; // Used for UI display, not actual peer count
+    private int _playersAlive = 0;
+    private const int MinPlayersToStart = 2; // TODO: Make configurable via args
 
-		// Load Level
-		if (LevelScene == null)
-		{
-			LevelScene = GD.Load<PackedScene>("res://scenes/maps/Arena01.tscn");
-		}
+    public override void _Ready()
+    {
+        GD.Print("GameManager: _Ready started.");
 
-		var levelContainer = GetNode("World/Level");
-		GD.Print("GameManager: Instantiating level...");
-		var levelNode = LevelScene.Instantiate();
-		levelContainer.AddChild(levelNode);
-		GD.Print("GameManager: Level instantiated.");
+        // 1. Locate and Cache Dependencies
+        _hud = GetNode<HUD>("UI/HUD");
+        _lobbyScreen = GetNode<LobbyScreen>("UI/LobbyScreen");
+        _gameStateManager = GetNode<GameStateManager>("Managers/GameStateManager");
 
-		// Initialize FSM with World node
-		if (_gameStateManager != null)
-		{
-			var world = GetNode("World");
-			GD.Print("GameManager: Initializing FSM with World...");
-			_gameStateManager.Initialize(world);
-			
-			_gameStateManager.StateChanged += OnGameStateChanged;
-			
-			// Don't auto-start here anymore. Wait for players.
-			if (Multiplayer.IsServer())
-			{
-				_gameStateManager.SetState(GameState.WaitingToStart);
-			}
-			else
-			{
-				// Client: Sync initial state visual
-				OnGameStateChanged((long)_gameStateManager.CurrentState);
-			}
-		}
+        var playersNode = GetNode("World/Entities/Players");
+        var enemiesNode = GetNode("World/Entities/Enemies");
+        _playersContainer = playersNode;
 
-		// Magic String for container is acceptable as it's internal to GameSession structure
-		var playersNode = GetNode("World/Entities/Players");
-		var enemiesNode = GetNode("World/Entities/Enemies");
+        // 2. Client-Side Reactive Logic: Listen for ANY player appearing in the scene
+        _playersContainer.ChildEnteredTree += OnPlayerNodeAdded;
 
-		if (levelNode is Level level)
-		{
-			// Safe access via property
-			if (WaveManager != null)
-			{
-				GD.Print("GameManager: Configuring WaveManager...");
-				WaveManager.Configure(level.SpawnPoints, enemiesNode);
-			}
-		}
-		else
-		{
-			GD.PrintErr("GameManager: Loaded level does not have Level script attached!");
-		}
-		
-		// Notify NetworkManager that the game level is ready
-		var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
-		
-		if (networkManager != null)
-		{
-			GD.Print("GameManager: Notifying NetworkManager...");
-			networkManager.PlayerSpawned += OnPlayerSpawned;
-			networkManager.OnGameLevelLoaded(playersNode, enemiesNode);
-		}
-		
-		GD.Print("GameManager: _Ready completed.");
-	}
+        // 3. Load Level & Player Resources
+        if (LevelScene == null)
+            LevelScene = GD.Load<PackedScene>("res://scenes/maps/Arena01.tscn");
 
-	private void OnPlayerSpawned(Player player)
-	{
-		_connectedPlayers++;
-		_playersAlive++;
-		GD.Print($"GameManager: Player spawned. Total: {_connectedPlayers}. Alive: {_playersAlive}");
+        if (PlayerScene == null)
+            PlayerScene = GD.Load<PackedScene>("res://scenes/player.tscn");
 
-		// Register player with HUD using stored reference
-		if (_hud != null)
-		{
-			_hud.RegisterPlayer(player);
-		}
+        var levelContainer = GetNode("World/Level");
+        var levelNode = LevelScene.Instantiate();
+        levelContainer.AddChild(levelNode);
 
-		// Listen to death. We handle the "Check if all dead" logic locally on Server.
-		player.Died += OnPlayerDied;
+        // 4. Initialize Game State & Wave Systems
+        if (_gameStateManager != null)
+        {
+            _gameStateManager.Initialize(GetNode("World"));
+            _gameStateManager.StateChanged += OnGameStateChanged;
 
-		CheckStartConditions();
-	}
+            // Server Logic: Set initial State
+            if (Multiplayer.IsServer())
+            {
+                _gameStateManager.SetState(GameState.WaitingToStart);
+            }
+            else
+            {
+                // Client Logic: Sync initial UI
+                OnGameStateChanged((long)_gameStateManager.CurrentState);
+            }
+        }
 
-	private void OnPlayerDied()
-	{
-		// Only Server decides Game Over
-		if (!Multiplayer.IsServer()) return;
+        if (levelNode is Level level && WaveManager != null)
+        {
+            WaveManager.Configure(level.SpawnPoints, enemiesNode);
+        }
 
-		_playersAlive--;
-		GD.Print($"GameManager: Player died. Alive: {_playersAlive}");
+        // 5. Network Session Managment
+        Multiplayer.PeerConnected += OnPeerConnected;
+        Multiplayer.PeerDisconnected += OnPeerDisconnected;
 
-		if (_playersAlive <= 0)
-		{
-			GameOver();
-		}
-	}
+        // 6. Handle Local Host / Singleplayer immediately
+        if (Multiplayer.IsServer())
+        {
+            // Check if we are running as a Dedicated Server (Headless)
+            // In Godot 4, headless mode is detected via DisplayServer name
+            bool isHeadless = DisplayServer.GetName() == "headless";
 
-	private void OnGameStateChanged(long stateIdx)
-	{
-		GameState state = (GameState)stateIdx;
-		GD.Print($"GameManager: Handling state change to {state}");
+            // Also checking command line args as a fallback or explicit override if "headless" isn't set on some OS
+            // But for now, let's rely on the concept: "If I am ID 1, do I play?"
+            // A dedicated server (ID 1) does NOT play.
 
-		if (_lobbyScreen != null)
-		{
-			_lobbyScreen.Visible = (state == GameState.WaitingToStart);
-			
-			// If waiting, update status text
-			if (state == GameState.WaitingToStart)
-			{
-				if (Multiplayer.IsServer())
-					_lobbyScreen.UpdateStatus(_connectedPlayers, MinPlayersToStart);
-				else
-					_lobbyScreen.UpdateStatus(0, 0); // Client placeholder
-			}
-		}
+            if (!isHeadless)
+            {
+                // Listen Server (Host plays)
+                OnPeerConnected(1);
+            }
+            else
+            {
+                GD.Print("GameManager: Running in Headless Mode (Dedicated Server). ID 1 will NOT be a player.");
+            }
 
-		if (state == GameState.Playing)
-		{
-			// Start Waves only if we are the server (WaveManager logic runs on server)
-			if (Multiplayer.IsServer() && WaveManager != null)
-			{
-				WaveManager.StartWaves();
-			}
-		}
-		
-		if (state == GameState.GameOver)
-		{
-			if (_hud != null) _hud.ShowGameOver();
-		}
-	}
+            // Add already connected clients (if any)
+            foreach (int id in Multiplayer.GetPeers())
+            {
+                OnPeerConnected(id);
+            }
+        }
 
-	private void CheckStartConditions()
-	{
-		// Logic:
-		// 1. If SinglePlayer (OfflinePeer) -> Start immediately (1 player is enough).
-		// 2. If Dedicated Server -> Wait for MinPlayersToStart.
-		// 3. If Client -> We just wait for server to change state (replicated via FSM).
+        GD.Print("GameManager: _Ready completed.");
+    }
 
-		if (!Multiplayer.IsServer()) return; // Clients don't decide.
+    // --- 1. Session Management (Server Only Logic) ---
 
-		bool isOffline = Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer;
-		
-		if (isOffline)
-		{
-			GD.Print("GameManager: SinglePlayer detected. Starting game immediately.");
-			_gameStateManager.SetState(GameState.Playing);
-		}
-		else
-		{
-			// Online / Dedicated
-			if (_connectedPlayers >= MinPlayersToStart)
-			{
-				GD.Print($"GameManager: Required players reached ({_connectedPlayers}/{MinPlayersToStart}). Starting game!");
-				_gameStateManager.SetState(GameState.Playing);
-			}
-			else
-			{
-				GD.Print($"GameManager: Waiting for players... ({_connectedPlayers}/{MinPlayersToStart})");
-				// Force UI update on server side immediately
-				if (_lobbyScreen != null) _lobbyScreen.UpdateStatus(_connectedPlayers, MinPlayersToStart);
-			}
-		}
-	}
+    private void OnPeerConnected(long id)
+    {
+        if (!Multiplayer.IsServer()) return;
 
-	public void GameOver()
-	{
-		GD.Print("GameManager: Triggering Game Over via FSM");
-		
-		if (_gameStateManager != null)
-		{
-			_gameStateManager.SetState(GameState.GameOver);
-		}
+        GD.Print($"GameManager: Peer {id} joined session.");
+        _connectedPeerIds.Add(id);
 
-		// Legacy signal for HUD (until HUD subscribes to FSM)
-		EmitSignal(SignalName.GameEnded);
-	}
+        // If we are ALREADY playing, late-join spawn immediately
+        if (_gameStateManager.CurrentState == GameState.Playing)
+        {
+            SpawnPlayer(id);
+        }
+
+        CheckStartConditions();
+    }
+
+    private void OnPeerDisconnected(long id)
+    {
+        GD.Print($"GameManager: Peer {id} left session.");
+        _connectedPeerIds.Remove(id);
+
+        if (Multiplayer.IsServer() && _playersContainer != null)
+        {
+            var player = _playersContainer.GetNodeOrNull(id.ToString());
+            player?.QueueFree();
+        }
+
+        CheckStartConditions();
+    }
+
+    private void CheckStartConditions()
+    {
+        if (!Multiplayer.IsServer()) return;
+
+        bool isOffline = Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer;
+        int currentCount = _connectedPeerIds.Count;
+
+        if (isOffline)
+        {
+            if (_gameStateManager.CurrentState == GameState.WaitingToStart)
+            {
+                GD.Print("GameManager: Offline Mode - Starting immediately.");
+                _gameStateManager.SetState(GameState.Playing);
+            }
+        }
+        else
+        {
+            _connectedPlayers = currentCount;
+
+            if (currentCount >= MinPlayersToStart && _gameStateManager.CurrentState == GameState.WaitingToStart)
+            {
+                GD.Print($"GameManager: Threshold reached ({currentCount}/{MinPlayersToStart}). Starting Game!");
+                _gameStateManager.SetState(GameState.Playing);
+            }
+            else if (_gameStateManager.CurrentState == GameState.WaitingToStart)
+            {
+                GD.Print($"GameManager: Waiting for players... ({currentCount}/{MinPlayersToStart})");
+                if (_lobbyScreen != null) _lobbyScreen.UpdateStatus(currentCount, MinPlayersToStart);
+            }
+        }
+    }
+
+    // --- 2. State & Gameplay Logic ---
+
+    private void OnGameStateChanged(long stateIdx)
+    {
+        GameState state = (GameState)stateIdx;
+        GD.Print($"GameManager: State Changed -> {state}");
+
+        if (_lobbyScreen != null)
+        {
+            _lobbyScreen.Visible = (state == GameState.WaitingToStart);
+            if (state == GameState.WaitingToStart)
+            {
+                _lobbyScreen.UpdateStatus(_connectedPeerIds.Count, MinPlayersToStart);
+            }
+        }
+
+        if (state == GameState.Playing)
+        {
+            if (Multiplayer.IsServer())
+            {
+                GD.Print("GameManager: Game Starting! Spawning all players...");
+                foreach (long id in _connectedPeerIds)
+                {
+                    SpawnPlayer(id);
+                }
+
+                if (WaveManager != null) WaveManager.StartWaves();
+            }
+        }
+
+        if (state == GameState.GameOver)
+        {
+            if (_hud != null) _hud.ShowGameOver();
+        }
+    }
+
+    // --- 3. Spawning System (Server Authoritative) ---
+
+    private void SpawnPlayer(long id)
+    {
+        if (!Multiplayer.IsServer()) return;
+
+        if (_playersContainer.HasNode(id.ToString()))
+        {
+            GD.PrintErr($"GameManager Warning: Player {id} already exists. Skipping spawn.");
+            return;
+        }
+
+        GD.Print($"GameManager: Spawning Avatar for Peer {id}");
+
+        Player player = PlayerScene.Instantiate<Player>();
+        player.Name = id.ToString();
+        _playersContainer.AddChild(player, true);
+
+        player.SetMultiplayerAuthority(1);
+
+        var input = player.GetNodeOrNull("PlayerInput");
+        if (input != null)
+        {
+            input.SetMultiplayerAuthority((int)id);
+        }
+    }
+
+    // --- 4. Client Reactive System ---
+
+    private void OnPlayerNodeAdded(Node node)
+    {
+        if (node is Player player)
+        {
+            GD.Print($"GameManager: Player detected in scene: {player.Name}");
+
+            _connectedPlayers++;
+            _playersAlive++;
+
+            if (_hud != null)
+            {
+                _hud.RegisterPlayer(player);
+            }
+
+            player.Died += OnPlayerDied;
+        }
+    }
+
+    private void OnPlayerDied()
+    {
+        if (!Multiplayer.IsServer()) return;
+
+        _playersAlive--;
+        GD.Print($"GameManager: Player Died. Alive: {_playersAlive}");
+
+        if (_playersAlive <= 0)
+        {
+            GameOver();
+        }
+    }
+
+    public void GameOver()
+    {
+        if (_gameStateManager != null)
+            _gameStateManager.SetState(GameState.GameOver);
+
+        EmitSignal(SignalName.GameEnded);
+    }
 }

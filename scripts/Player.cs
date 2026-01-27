@@ -3,7 +3,7 @@ using System;
 
 public enum WeaponType { Pistol, MachineGun }
 
-public partial class Player : CharacterBody2D
+public partial class Player : CharacterBody2D, IDamageable
 {
     [Export] public float Speed = 300.0f;
     [Export] public PackedScene BulletScene { get; set; }
@@ -12,13 +12,18 @@ public partial class Player : CharacterBody2D
     public delegate void HealthChangedEventHandler(int newHealth);
     [Signal]
     public delegate void EnemyKilledEventHandler(int newKills);
+
+    // IDamageable Implementation
+    public event Action Died;
+
+    // Legacy Signal for Godot Editor support (optional, can be bridged)
     [Signal]
-    public delegate void DiedEventHandler();
+    public delegate void DiedSignalEventHandler();
 
     // State properties
     public int Health { get; private set; } = 3;
     public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol; // Public for Controller
-    
+
     private int _kills = 0; // Restored field
 
     private PlayerInput _input;
@@ -48,12 +53,12 @@ public partial class Player : CharacterBody2D
     public override void _Ready()
     {
         _input = GetNode<PlayerInput>("PlayerInput");
-        
+
         _shootTimer = new Timer();
         AddChild(_shootTimer);
         _shootTimer.WaitTime = 1.0f / _machineGunFireRate;
         _shootTimer.OneShot = true;
-        
+
         EmitSignal(SignalName.HealthChanged, Health);
         EmitSignal(SignalName.EnemyKilled, _kills);
     }
@@ -102,16 +107,16 @@ public partial class Player : CharacterBody2D
         if (bulletsContainer == null) return;
 
         Bullet bullet = BulletScene.Instantiate<Bullet>();
-        bullet.Name = "Bullet_" + Name + "_" + Time.GetTicksMsec(); 
-        
+        bullet.Name = "Bullet_" + Name + "_" + Time.GetTicksMsec();
+
         bullet.EnemyKilled += OnEnemyKilledByBullet;
-        
+
         // We need AimDirection. Since PlayerInput is a child, we can access it.
         // Or better: ServerController passes it? 
         // For simplicity: We use current Rotation or ask Input component.
         var input = GetNode<PlayerInput>("PlayerInput");
         bullet.SetDirection(input.AimDirection);
-        
+
         bullet.GlobalPosition = GlobalPosition;
         bulletsContainer.AddChild(bullet, true);
     }
@@ -136,7 +141,7 @@ public partial class Player : CharacterBody2D
         GD.Print($"{Name} took damage. Health: {Health}");
 
         EmitSignal(SignalName.HealthChanged, Health);
-        
+
         if (Health <= 0)
         {
             Die();
@@ -158,10 +163,11 @@ public partial class Player : CharacterBody2D
     private void Die()
     {
         GD.Print($"{Name} died!");
-        
+
         // Disable visuals locally
         Hide();
 
-        EmitSignal(SignalName.Died);
+        EmitSignal(SignalName.DiedSignal);
+        Died?.Invoke();
     }
 }
