@@ -36,8 +36,17 @@ public partial class BulletVisuals : Node
 
     public override void _Process(double delta)
     {
+        Vector2 currentPos = _bullet.GlobalPosition;
+
+        // Glitch Prevention: Don't start the trail at (0,0) if it's the very first point.
+        // This avoids the '1ms flash' from the origin before network synchronization kicks in.
+        if (_trail.GetPointCount() == 0 && currentPos.IsZeroApprox())
+        {
+            return;
+        }
+
         // Add current position
-        _trail.AddPoint(_bullet.GlobalPosition);
+        _trail.AddPoint(currentPos);
 
         // Remove old points
         if (_trail.GetPointCount() > TrailLength)
