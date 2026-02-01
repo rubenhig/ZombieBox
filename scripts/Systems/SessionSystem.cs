@@ -3,7 +3,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
-public partial class GameManager : Node
+public partial class SessionSystem : Node
 {
     [Signal]
     public delegate void GameEndedEventHandler();
@@ -12,10 +12,10 @@ public partial class GameManager : Node
     public PackedScene LevelScene { get; set; }
 
     [Export]
-    public WaveManager WaveManager { get; set; }
+    public WaveSystem WaveSystem { get; set; }
 
     [Export]
-    public PackedScene PlayerScene { get; set; }
+    public SpawnSystem SpawnSystem { get; set; }
 
     // Peer Tracking
     private HashSet<long> _connectedPeerIds = new HashSet<long>();
@@ -32,7 +32,7 @@ public partial class GameManager : Node
 
     public override void _Ready()
     {
-        GD.Print("GameManager: _Ready started.");
+        GD.Print("SessionSystem: _Ready started.");
 
         // 1. Locate and Cache Dependencies
         _hud = GetNode<HUD>("UI/HUD");
@@ -41,17 +41,21 @@ public partial class GameManager : Node
 
         var playersNode = GetNode("World/Entities/Players");
         var enemiesNode = GetNode("World/Entities/Enemies");
+        var bulletsNode = GetNode("World/Entities/Bullets");
         _playersContainer = playersNode;
 
-        // 2. Client-Side Reactive Logic: Listen for ANY player appearing in the scene
+        // 2. Configure SpawnSystem with entity containers
+        if (SpawnSystem != null)
+        {
+            SpawnSystem.Configure(playersNode, enemiesNode, bulletsNode);
+        }
+
+        // 3. Client-Side Reactive Logic: Listen for ANY player appearing in the scene
         _playersContainer.ChildEnteredTree += OnPlayerNodeAdded;
 
-        // 3. Load Level & Player Resources
+        // 4. Load Level Resource
         if (LevelScene == null)
             LevelScene = GD.Load<PackedScene>("res://scenes/maps/Arena01.tscn");
-
-        if (PlayerScene == null)
-            PlayerScene = GD.Load<PackedScene>("res://scenes/player.tscn");
 
         var levelContainer = GetNode("World/Level");
         var levelNode = LevelScene.Instantiate();
@@ -75,9 +79,9 @@ public partial class GameManager : Node
             }
         }
 
-        if (levelNode is Level level && WaveManager != null)
+        if (levelNode is Level level && WaveSystem != null)
         {
-            WaveManager.Configure(level.SpawnPoints, enemiesNode);
+            WaveSystem.Configure(level.SpawnPoints, SpawnSystem);
         }
 
         // 5. Network Session Managment
@@ -102,7 +106,7 @@ public partial class GameManager : Node
             }
             else
             {
-                GD.Print("GameManager: Running in Headless Mode (Dedicated Server). ID 1 will NOT be a player.");
+                GD.Print("SessionSystem: Running in Headless Mode (Dedicated Server). ID 1 will NOT be a player.");
             }
 
             // Add already connected clients (if any)
@@ -112,7 +116,7 @@ public partial class GameManager : Node
             }
         }
 
-        GD.Print("GameManager: _Ready completed.");
+        GD.Print("SessionSystem: _Ready completed.");
     }
 
     // --- 1. Session Management (Server Only Logic) ---
@@ -121,7 +125,7 @@ public partial class GameManager : Node
     {
         if (!Multiplayer.IsServer()) return;
 
-        GD.Print($"GameManager: Peer {id} joined session.");
+        GD.Print($"SessionSystem: Peer {id} joined session.");
         _connectedPeerIds.Add(id);
 
         // If we are ALREADY playing, late-join spawn immediately
@@ -135,7 +139,7 @@ public partial class GameManager : Node
 
     private void OnPeerDisconnected(long id)
     {
-        GD.Print($"GameManager: Peer {id} left session.");
+        GD.Print($"SessionSystem: Peer {id} left session.");
         _connectedPeerIds.Remove(id);
 
         if (Multiplayer.IsServer() && _playersContainer != null)
@@ -158,7 +162,7 @@ public partial class GameManager : Node
         {
             if (_gameStateManager.CurrentState == GameState.WaitingToStart)
             {
-                GD.Print("GameManager: Offline Mode - Starting immediately.");
+                GD.Print("SessionSystem: Offline Mode - Starting immediately.");
                 _gameStateManager.SetState(GameState.Playing);
             }
         }
@@ -168,12 +172,12 @@ public partial class GameManager : Node
 
             if (currentCount >= MinPlayersToStart && _gameStateManager.CurrentState == GameState.WaitingToStart)
             {
-                GD.Print($"GameManager: Threshold reached ({currentCount}/{MinPlayersToStart}). Starting Game!");
+                GD.Print($"SessionSystem: Threshold reached ({currentCount}/{MinPlayersToStart}). Starting Game!");
                 _gameStateManager.SetState(GameState.Playing);
             }
             else if (_gameStateManager.CurrentState == GameState.WaitingToStart)
             {
-                GD.Print($"GameManager: Waiting for players... ({currentCount}/{MinPlayersToStart})");
+                GD.Print($"SessionSystem: Waiting for players... ({currentCount}/{MinPlayersToStart})");
                 if (_lobbyScreen != null) _lobbyScreen.UpdateStatus(currentCount, MinPlayersToStart);
             }
         }
@@ -184,7 +188,7 @@ public partial class GameManager : Node
     private void OnGameStateChanged(long stateIdx)
     {
         GameState state = (GameState)stateIdx;
-        GD.Print($"GameManager: State Changed -> {state}");
+        GD.Print($"SessionSystem: State Changed -> {state}");
 
         if (_lobbyScreen != null)
         {
@@ -199,13 +203,13 @@ public partial class GameManager : Node
         {
             if (Multiplayer.IsServer())
             {
-                GD.Print("GameManager: Game Starting! Spawning all players...");
+                GD.Print("SessionSystem: Game Starting! Spawning all players...");
                 foreach (long id in _connectedPeerIds)
                 {
                     SpawnPlayer(id);
                 }
 
-                if (WaveManager != null) WaveManager.StartWaves();
+                if (WaveSystem != null) WaveSystem.StartWaves();
             }
         }
 
@@ -215,31 +219,19 @@ public partial class GameManager : Node
         }
     }
 
-    // --- 3. Spawning System (Server Authoritative) ---
+    // --- 3. Spawning (delegates to SpawnSystem) ---
 
     private void SpawnPlayer(long id)
     {
         if (!Multiplayer.IsServer()) return;
 
-        if (_playersContainer.HasNode(id.ToString()))
+        if (SpawnSystem == null)
         {
-            GD.PrintErr($"GameManager Warning: Player {id} already exists. Skipping spawn.");
+            GD.PrintErr("SessionSystem: SpawnSystem not configured!");
             return;
         }
 
-        GD.Print($"GameManager: Spawning Avatar for Peer {id}");
-
-        Player player = PlayerScene.Instantiate<Player>();
-        player.Name = id.ToString();
-        _playersContainer.AddChild(player, true);
-
-        player.SetMultiplayerAuthority(1);
-
-        var input = player.GetNodeOrNull("PlayerInput");
-        if (input != null)
-        {
-            input.SetMultiplayerAuthority((int)id);
-        }
+        SpawnSystem.SpawnPlayer(id);
     }
 
     // --- 4. Client Reactive System ---
@@ -248,7 +240,7 @@ public partial class GameManager : Node
     {
         if (node is Player player)
         {
-            GD.Print($"GameManager: Player detected in scene: {player.Name}");
+            GD.Print($"SessionSystem: Player detected in scene: {player.Name}");
 
             _connectedPlayers++;
             _playersAlive++;
@@ -267,7 +259,7 @@ public partial class GameManager : Node
         if (!Multiplayer.IsServer()) return;
 
         _playersAlive--;
-        GD.Print($"GameManager: Player Died. Alive: {_playersAlive}");
+        GD.Print($"SessionSystem: Player Died. Alive: {_playersAlive}");
 
         if (_playersAlive <= 0)
         {

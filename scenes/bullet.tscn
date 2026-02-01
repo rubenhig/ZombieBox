@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://c8k2xwx21s5x1"]
 
-[ext_resource type="Script" path="res://scripts/Bullet.cs" id="1_vjgrn"]
+[ext_resource type="Script" path="res://scripts/Entities/Bullet.cs" id="1_vjgrn"]
 [ext_resource type="SceneReplicationConfig" uid="uid://bullet_sync_config" path="res://scenes/bullet_replication_config.tres" id="2_sync"]
 [ext_resource type="Texture2D" uid="uid://b11ge5rtwrk65" path="res://icon.svg" id="3_icon"]
 [ext_resource type="Script" path="res://scripts/Components/BulletVisuals.cs" id="4_vis"]

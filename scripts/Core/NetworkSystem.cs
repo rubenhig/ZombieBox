@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-public partial class NetworkManager : Node
+public partial class NetworkSystem : Node
 {
     [Signal]
     public delegate void PlayerSpawnedEventHandler(Player player);
@@ -20,12 +20,12 @@ public partial class NetworkManager : Node
         // Network Logic Only
     }
 
-    // Logic moved to GameManager
+    // Logic moved to SessionSystem
     // public void OnGameLevelLoaded(...)
 
     public void StartSinglePlayer()
     {
-        GD.Print("NetworkManager: Starting Single Player (Offline Mode)...");
+        GD.Print("NetworkSystem: Starting Single Player (Offline Mode)...");
 
         // Use OfflineMultiplayerPeer for local play without networking overhead/ports
         var peer = new OfflineMultiplayerPeer();
@@ -39,7 +39,7 @@ public partial class NetworkManager : Node
 
     public void StartDedicatedServer(int port)
     {
-        GD.Print($"NetworkManager: Attempting to start Dedicated Server on port {port}...");
+        GD.Print($"NetworkSystem: Attempting to start Dedicated Server on port {port}...");
 
         var peer = new ENetMultiplayerPeer();
         var error = peer.CreateServer(port, MaxPlayers);
@@ -56,7 +56,7 @@ public partial class NetworkManager : Node
 
     public void StartClient(string ipAddress, int port)
     {
-        GD.Print($"NetworkManager: Attempting to connect to {ipAddress}:{port}...");
+        GD.Print($"NetworkSystem: Attempting to connect to {ipAddress}:{port}...");
 
         var peer = new ENetMultiplayerPeer();
         var error = peer.CreateClient(ipAddress, port);
@@ -80,15 +80,15 @@ public partial class NetworkManager : Node
 
     private void OnPeerConnected(long id)
     {
-        GD.Print("NetworkManager: Peer connected: " + id);
-        // GameManager will handle spawning via signal subscription
+        GD.Print("NetworkSystem: Peer connected: " + id);
+        // SessionSystem will handle spawning via signal subscription
     }
 
-    // Replaced by direct signal connection from GameManager to Multiplayer.PeerConnected
+    // Replaced by direct signal connection from SessionSystem to Multiplayer.PeerConnected
     // private void SpawnPlayer(long id) { ... }
 
     private void OnPeerDisconnected(long id)
     {
-        GD.Print("NetworkManager: Peer disconnected: " + id);
+        GD.Print("NetworkSystem: Peer disconnected: " + id);
     }
 }

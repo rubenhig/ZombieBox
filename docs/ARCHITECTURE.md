@@ -1,18 +1,122 @@
 # ZombieBox - Documento de Arquitectura
 
-> **Versión**: 1.0 (Fase 1)
-> **Última actualización**: Enero 2026
+> **Versión**: 1.1 (Fase 1)
+> **Última actualización**: Febrero 2026
 
 ---
 
 ## Índice
 
+0. [Contexto del Proyecto](#0-contexto-del-proyecto)
 1. [Visión y Principios](#1-visión-y-principios)
 2. [Estructura del Proyecto](#2-estructura-del-proyecto)
 3. [Modelo de Red](#3-modelo-de-red)
 4. [Flujo de Sesión](#4-flujo-de-sesión)
 5. [Entidades y Componentes](#5-entidades-y-componentes)
 6. [Roadmap de Fases](#6-roadmap-de-fases)
+
+---
+
+## 0. Contexto del Proyecto
+
+### 0.1 Qué es ZombieBox
+
+**ZombieBox** es un shooter top-down multijugador para 2-4 jugadores, con modos cooperativos y competitivos. El juego utiliza un modelo cliente-servidor donde servidores dedicados ejecutan la lógica de juego de forma autoritativa.
+
+### 0.2 Modos de Juego
+
+| Modo | Descripción | Estado |
+|------|-------------|--------|
+| **Survival (PvE)** | Sobrevivir oleadas de zombies cooperativamente | **Enfoque actual** |
+| Deathmatch (PvP) | Todos contra todos | Futuro |
+| Team Deathmatch | Equipos enfrentados | Futuro |
+
+---
+
+### 0.3 Arquitectura del Sistema Completo
+
+El sistema completo de ZombieBox incluye clientes, backend y servidores dedicados:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ARQUITECTURA ZOMBIEBOX                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────┐      ┌──────────┐              ┌──────────┐
+    │ Cliente  │      │ Cliente  │    ...       │ Cliente  │
+    │    1     │      │    2     │              │    N     │
+    └────┬─────┘      └────┬─────┘              └────┬─────┘
+         │                 │                         │
+         │    HTTPS (Auth/Matchmaking)               │
+         └─────────────────┼─────────────────────────┘
+                           │
+                           ▼
+              ┌────────────────────────┐
+              │        BACKEND         │◄───────┐
+              │                        │        │
+              │  • Autenticación       │        │  OAuth
+              │  • Matchmaking         │        │
+              │  • Orquestación        │   ┌────┴────┐
+              │  • Stats/Persistencia  │   │ Google  │
+              │                        │   │  Auth   │
+              └───────────┬────────────┘   └─────────┘
+                          │
+                          │ Spawn/Manage
+                          ▼
+         ┌────────────────────────────────────────────┐
+         │         SERVIDOR DEDICADO (Runtime)         │
+         │                                             │
+         │    ┌─────────────────────────────────┐     │
+         │    │  Godot Headless                 │     │
+         │    │  • Física autoritativa          │     │
+         │    │  • Lógica de juego              │     │
+         │    │  • Validación de acciones       │     │
+         │    └─────────────────────────────────┘     │
+         │                                             │
+         └─────────────────┬───────────────────────────┘
+                           │
+                           │ ENet (UDP) - Gameplay
+                           │
+         ┌─────────────────┼─────────────────────┐
+         │                 │                     │
+         ▼                 ▼                     ▼
+    ┌─────────┐       ┌─────────┐          ┌─────────┐
+    │Cliente 1│       │Cliente 2│          │Cliente N│
+    │(Godot)  │       │(Godot)  │          │(Godot)  │
+    └─────────┘       └─────────┘          └─────────┘
+```
+
+**Flujo de una sesión de juego:**
+
+1. **Autenticación**: Los clientes se autentican con el Backend (vía OAuth de Google u otro proveedor)
+2. **Matchmaking**: El Backend agrupa jugadores y asigna/crea un Servidor Dedicado
+3. **Conexión**: Los clientes reciben IP:Puerto del servidor asignado y conectan directamente
+4. **Gameplay**: La partida ocurre directamente Cliente ↔ Servidor Dedicado (ENet/UDP)
+5. **Fin de partida**: El Servidor reporta stats al Backend para persistencia
+
+---
+
+### 0.4 Alcance de este Repositorio
+
+Este repositorio contiene el **Runtime del juego**: el código que ejecutan tanto los clientes como los servidores dedicados.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ESTE REPOSITORIO (ZombieBox)                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ✓ Cliente Godot (rendering, input, UI)                        │
+│  ✓ Servidor Dedicado Godot (headless, autoritativo)            │
+│  ✓ Lógica de juego compartida (entidades, sistemas)            │
+│  ✓ Netcode (sincronización, spawning, replicación)             │
+│                                                                 │
+│  ✗ Backend (repositorio separado, futuro)                      │
+│  ✗ Infraestructura cloud (Kubernetes, orquestación)            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Nota**: Durante la Fase 1, los clientes conectan directamente a un servidor por IP:Puerto. La integración con Backend vendrá en fases posteriores.
 
 ---
 
@@ -158,21 +262,9 @@ Los errores se manejan, no se ignoran silenciosamente.
 
 ### 1.4 Contrato con Backend (Futuro)
 
-El Game Runtime (Godot) se integrará con un Backend externo:
+Ver [Sección 0.3 - Arquitectura del Sistema Completo](#03-arquitectura-del-sistema-completo) para el diagrama de integración con Backend.
 
-```
-CLIENTE → BACKEND:
-• Autenticación (Google OAuth)
-• Solicitar partida (matchmaking)
-• Obtener IP:Puerto del Dedicated Server asignado
-
-DEDICATED SERVER → BACKEND:
-• Registrarse como disponible
-• Validar tokens de jugadores
-• Reportar fin de partida (stats)
-```
-
-**Para Fase 1**: El cliente conectará a IP:Puerto hardcoded. La integración con Backend vendrá en fases posteriores.
+**Para Fase 1**: El cliente conecta a IP:Puerto hardcoded. La integración con Backend vendrá en fases posteriores.
 
 ---
 
@@ -654,24 +746,9 @@ El estado de la sesión se replica a todos los clientes mediante MultiplayerSync
 
 ### 4.7 Integración Futura con Backend
 
-```
-                              BACKEND
-                                 │
-        ┌────────────────────────┼────────────────────────┐
-        │                        │                        │
-        ▼                        ▼                        ▼
-   Crear partida           Asignar server           Terminar partida
-        │                        │                        │
-        └────► Dedicated Server arranca ◄─────────────────┘
-                      │
-                      ▼
-               Gameplay normal
-                      │
-                      ▼
-               Reportar stats al Backend
-```
+Ver [Sección 0.3 - Arquitectura del Sistema Completo](#03-arquitectura-del-sistema-completo) para el diagrama completo de integración.
 
-Para Fase 1, estas integraciones son stubs. El servidor arranca por CLI y no reporta al backend.
+**Para Fase 1**: El servidor arranca por CLI y no reporta al backend. Las integraciones se implementarán en fases posteriores.
 
 ---
 

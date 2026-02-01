@@ -42,10 +42,10 @@ public partial class Master : Node
             GD.Print(serverMsg);
             try { System.IO.File.AppendAllText("server_status.txt", serverMsg + "\n"); } catch {}
             
-            var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
+            var networkSystem = GetNode<NetworkSystem>("/root/NetworkSystem");
             
-            // We will add this method to NetworkManager in the next step
-            networkManager.StartDedicatedServer(port);
+            // We will add this method to NetworkSystem in the next step
+            networkSystem.StartDedicatedServer(port);
             
             // Load game session directly
             LoadGame();
@@ -69,8 +69,8 @@ public partial class Master : Node
 
     private void AutoConnect()
     {
-        var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
-        networkManager.StartClient("127.0.0.1", 7777);
+        var networkSystem = GetNode<NetworkSystem>("/root/NetworkSystem");
+        networkSystem.StartClient("127.0.0.1", 7777);
     }
 
     public void LoadMenu()

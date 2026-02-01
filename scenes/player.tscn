@@ -1,12 +1,11 @@
 [gd_scene load_steps=6 format=3 uid="uid://d0j2f7wylnxqe"]
 
-[ext_resource type="Script" path="res://scripts/Player.cs" id="1_gx2j3"]
+[ext_resource type="Script" path="res://scripts/Entities/Player.cs" id="1_gx2j3"]
 [ext_resource type="Texture2D" uid="uid://b11ge5rtwrk65" path="res://icon.svg" id="2_c2vsc"]
 [ext_resource type="Script" path="res://scripts/Components/PlayerInput.cs" id="3_input"]
 [ext_resource type="Script" path="res://scripts/Components/PlayerServerController.cs" id="3_server_logic"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/player_server_sync.tres" id="4_sync_server"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/player_input_sync.tres" id="5_sync_input"]
-[ext_resource type="PackedScene" uid="uid://c8k2xwx21s5x1" path="res://scenes/bullet.tscn" id="6_bullet"]
 [ext_resource type="Script" path="res://scripts/Components/PlayerVisuals.cs" id="7_visuals"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_gun.png" id="8_tex_pistol"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_machine.png" id="9_tex_machine"]
@@ -19,7 +18,6 @@ height = 96.0
 collision_layer = 2
 collision_mask = 5
 script = ExtResource("1_gx2j3")
-BulletScene = ExtResource("6_bullet")
 
 [node name="ServerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = ExtResource("4_sync_server")

@@ -1,10 +1,10 @@
 [gd_scene load_steps=6 format=3 uid="uid://cgr6a2x624bqp"]
 
-[ext_resource type="Script" path="res://scripts/GameManager.cs" id="1_manager"]
-[ext_resource type="Script" path="res://scripts/WaveManager.cs" id="2_wave"]
+[ext_resource type="Script" path="res://scripts/Systems/SessionSystem.cs" id="1_manager"]
+[ext_resource type="Script" path="res://scripts/Systems/WaveSystem.cs" id="2_wave"]
+[ext_resource type="Script" path="res://scripts/Systems/SpawnSystem.cs" id="2_spawn"]
 [ext_resource type="Script" path="res://scripts/Core/GameStateManager.cs" id="3_gamestate"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/gamestate_sync.tres" id="3_gamestate_sync"]
-[ext_resource type="PackedScene" uid="uid://b2w5xpg8iuxf1" path="res://scenes/enemy.tscn" id="3_enemy"]
 [ext_resource type="PackedScene" uid="uid://c5w5xpg8iuxf1" path="res://scenes/HUD.tscn" id="4_hud"]
 [ext_resource type="PackedScene" uid="uid://lobbyscreen" path="res://scenes/LobbyScreen.tscn" id="5_lobby"]
 
@@ -13,9 +13,10 @@ vertices = PackedVector2Array(2000, 2000, -500, 2000, -500, -500, 2000, -500)
 polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
 outlines = Array[PackedVector2Array]([PackedVector2Array(-500, -500, 2000, -500, 2000, 2000, -500, 2000)])
 
-[node name="GameSession" type="Node" node_paths=PackedStringArray("WaveManager")]
+[node name="GameSession" type="Node" node_paths=PackedStringArray("WaveSystem", "SpawnSystem")]
 script = ExtResource("1_manager")
-WaveManager = NodePath("Managers/WaveManager")
+WaveSystem = NodePath("Managers/WaveSystem")
+SpawnSystem = NodePath("Managers/SpawnSystem")
 
 [node name="Managers" type="Node" parent="."]
 
@@ -25,9 +26,11 @@ script = ExtResource("3_gamestate")
 [node name="StateSynchronizer" type="MultiplayerSynchronizer" parent="Managers/GameStateManager"]
 replication_config = ExtResource("3_gamestate_sync")
 
-[node name="WaveManager" type="Node" parent="Managers"]
+[node name="WaveSystem" type="Node" parent="Managers"]
 script = ExtResource("2_wave")
-EnemyScene = ExtResource("3_enemy")
+
+[node name="SpawnSystem" type="Node" parent="Managers"]
+script = ExtResource("2_spawn")
 
 [node name="PlayerSpawner" type="MultiplayerSpawner" parent="Managers"]
 _spawnable_scenes = PackedStringArray("res://scenes/player.tscn")

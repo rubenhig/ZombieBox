@@ -24,16 +24,16 @@ public partial class HUD : CanvasLayer
         _btnRestart.Pressed += OnRestartPressed;
         _btnMenu.Pressed += OnMenuPressed;
 
-        // WaveManager is usually present at start
-        WaveManager waveManager = GetNodeOrNull<WaveManager>("../Game/WaveManager");
+        // WaveSystem is usually present at start
+        WaveSystem waveSystem = GetNodeOrNull<WaveSystem>("../Game/WaveSystem");
         // Fallback for different path structure
-        if (waveManager == null) waveManager = GetTree().Root.FindChild("WaveManager", true, false) as WaveManager;
-        
-        if (waveManager != null)
+        if (waveSystem == null) waveSystem = GetTree().Root.FindChild("WaveSystem", true, false) as WaveSystem;
+
+        if (waveSystem != null)
         {
-            waveManager.WaveChanged += OnWaveChanged;
+            waveSystem.WaveChanged += OnWaveChanged;
         }
-        // GameManager connection moved to GameManager.cs via dependency injection
+        // SessionSystem connection moved to SessionSystem.cs via dependency injection
     }
 
     public void RegisterPlayer(Player player)

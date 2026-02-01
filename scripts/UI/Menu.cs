@@ -24,16 +24,16 @@ public partial class Menu : Control
     private void OnSinglePlayerPressed()
     {
         GD.Print("Starting Single Player...");
-        // Use NetworkManager to start a local session
-        var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
-        networkManager.StartSinglePlayer();
+        // Use NetworkSystem to start a local session
+        var networkSystem = GetNode<NetworkSystem>("/root/NetworkSystem");
+        networkSystem.StartSinglePlayer();
     }
 
     private void OnMultiplayerPressed()
     {
         GD.Print("Joining Online Session (localhost)...");
-        var networkManager = GetNode<NetworkManager>("/root/NetworkManager");
-        networkManager.StartClient("127.0.0.1", 7777);
+        var networkSystem = GetNode<NetworkSystem>("/root/NetworkSystem");
+        networkSystem.StartClient("127.0.0.1", 7777);
     }
 
     private void OnQuitPressed()

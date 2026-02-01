@@ -6,7 +6,6 @@ public enum WeaponType { Pistol, MachineGun }
 public partial class Player : CharacterBody2D, IDamageable
 {
     [Export] public float Speed = 300.0f;
-    [Export] public PackedScene BulletScene { get; set; }
 
     [Signal]
     public delegate void HealthChangedEventHandler(int newHealth);
@@ -97,28 +96,21 @@ public partial class Player : CharacterBody2D, IDamageable
     // Called by ServerController (MachineGun) or RPC (Pistol)
     public void DoFire()
     {
-        if (BulletScene == null)
+        // Get SpawnSystem from the scene tree
+        var spawnSystem = GetTree().Root.FindChild("SpawnSystem", true, false) as SpawnSystem;
+        if (spawnSystem == null)
         {
-            GD.PrintErr("Player: BulletScene is not assigned!");
+            GD.PrintErr("Player: SpawnSystem not found in scene tree!");
             return;
         }
 
-        Node bulletsContainer = GetTree().Root.FindChild("Bullets", true, false);
-        if (bulletsContainer == null) return;
-
-        Bullet bullet = BulletScene.Instantiate<Bullet>();
-        bullet.Name = "Bullet_" + Name + "_" + Time.GetTicksMsec();
-
-        bullet.EnemyKilled += OnEnemyKilledByBullet;
-
-        // We need AimDirection. Since PlayerInput is a child, we can access it.
-        // Or better: ServerController passes it? 
-        // For simplicity: We use current Rotation or ask Input component.
         var input = GetNode<PlayerInput>("PlayerInput");
-        bullet.SetDirection(input.AimDirection);
+        Bullet bullet = spawnSystem.SpawnBullet(GlobalPosition, input.AimDirection, Name);
 
-        bullet.GlobalPosition = GlobalPosition;
-        bulletsContainer.AddChild(bullet, true);
+        if (bullet != null)
+        {
+            bullet.EnemyKilled += OnEnemyKilledByBullet;
+        }
     }
 
     // --- State Modification Methods (Called by ServerController) ---
