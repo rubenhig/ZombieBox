@@ -82,6 +82,12 @@ public partial class SessionSystem : Node
         if (levelNode is Level level && WaveSystem != null)
         {
             WaveSystem.Configure(level.SpawnPoints, SpawnSystem);
+
+            // Connect WaveSystem to HUD
+            if (_hud != null)
+            {
+                WaveSystem.WaveChanged += _hud.OnWaveChanged;
+            }
         }
 
         // 5. Network Session Managment
@@ -240,9 +246,11 @@ public partial class SessionSystem : Node
             _connectedPlayers++;
             _playersAlive++;
 
-            if (_hud != null)
+            // Only connect HUD to the LOCAL player (owned by this client)
+            if (_hud != null && player.Name == Multiplayer.GetUniqueId().ToString())
             {
                 _hud.RegisterPlayer(player);
+                GD.Print($"SessionSystem: HUD connected to local player {player.Name}");
             }
 
             // Connect player events to systems

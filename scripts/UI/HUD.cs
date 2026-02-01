@@ -24,16 +24,7 @@ public partial class HUD : CanvasLayer
         _btnRestart.Pressed += OnRestartPressed;
         _btnMenu.Pressed += OnMenuPressed;
 
-        // WaveSystem is usually present at start
-        WaveSystem waveSystem = GetNodeOrNull<WaveSystem>("../Game/WaveSystem");
-        // Fallback for different path structure
-        if (waveSystem == null) waveSystem = GetTree().Root.FindChild("WaveSystem", true, false) as WaveSystem;
-
-        if (waveSystem != null)
-        {
-            waveSystem.WaveChanged += OnWaveChanged;
-        }
-        // SessionSystem connection moved to SessionSystem.cs via dependency injection
+        // WaveSystem connection is handled by SessionSystem via dependency injection
     }
 
     public void RegisterPlayer(Player player)
@@ -63,7 +54,7 @@ public partial class HUD : CanvasLayer
         }
     }
 
-    private void OnWaveChanged(int newWave)
+    public void OnWaveChanged(int newWave)
     {
         if (IsInstanceValid(_waveLabel))
         {
