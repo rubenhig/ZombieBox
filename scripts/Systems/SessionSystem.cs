@@ -245,7 +245,15 @@ public partial class SessionSystem : Node
                 _hud.RegisterPlayer(player);
             }
 
+            // Connect player events to systems
             player.Died += OnPlayerDied;
+
+            // Connect weapon firing to SpawnSystem (passing player reference via lambda)
+            if (SpawnSystem != null)
+            {
+                player.WeaponFired += (position, direction, shooterName) =>
+                    SpawnSystem.OnPlayerWeaponFired(player, position, direction, shooterName);
+            }
         }
     }
 

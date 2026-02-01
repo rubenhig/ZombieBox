@@ -135,4 +135,27 @@ public partial class SpawnSystem : Node
 
         return bullet;
     }
+
+    /// <summary>
+    /// Handles Player.WeaponFired signal.
+    /// Spawns a bullet and connects kill tracking to the player.
+    /// Called by SessionSystem when a player fires their weapon.
+    /// </summary>
+    /// <param name="player">The player who fired the weapon.</param>
+    /// <param name="position">Position where the bullet spawns.</param>
+    /// <param name="direction">Direction the bullet travels.</param>
+    /// <param name="shooterName">Name of the shooter (for bullet naming).</param>
+    public void OnPlayerWeaponFired(Player player, Vector2 position, Vector2 direction, string shooterName)
+    {
+        if (!NetworkUtils.IsServer()) return;
+
+        // Spawn the bullet
+        Bullet bullet = SpawnBullet(position, direction, shooterName);
+
+        // Connect kill tracking
+        if (bullet != null && player != null)
+        {
+            bullet.EnemyKilled += player.OnEnemyKilledByBullet;
+        }
+    }
 }

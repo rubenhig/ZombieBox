@@ -8,7 +8,7 @@ public partial class Player : CharacterBody2D, IDamageable
     [Export]
     public float Speed { get; set; } = 300.0f;
 
-    // Signals for state changes
+    // Signals for external systems (SessionSystem, HUD, SpawnSystem, etc.)
     [Signal]
     public delegate void HealthChangedEventHandler(int newHealth);
 
@@ -17,6 +17,9 @@ public partial class Player : CharacterBody2D, IDamageable
 
     [Signal]
     public delegate void WeaponSwitchedEventHandler(WeaponType newWeapon);
+
+    [Signal]
+    public delegate void WeaponFiredEventHandler(Vector2 position, Vector2 direction, string shooterName);
 
     // IDamageable Implementation
     public event Action Died;
@@ -102,25 +105,14 @@ public partial class Player : CharacterBody2D, IDamageable
     // --- Server-side Actions ---
 
     /// <summary>
-    /// Fires a bullet. Called by PlayerController (MachineGun) or RPC (Pistol).
-    /// Server-only.
+    /// Fires a weapon. Called by PlayerController (MachineGun) or RPC (Pistol).
+    /// Server-only. Emits signal for external systems (SpawnSystem) to handle.
     /// </summary>
     public void DoFire()
     {
-        // Get SpawnSystem from the scene tree
-        var spawnSystem = GetTree().Root.FindChild("SpawnSystem", true, false) as SpawnSystem;
-        if (spawnSystem == null)
-        {
-            GD.PrintErr("Player: SpawnSystem not found in scene tree!");
-            return;
-        }
-
-        Bullet bullet = spawnSystem.SpawnBullet(GlobalPosition, _input.AimDirection, Name);
-
-        if (bullet != null)
-        {
-            bullet.EnemyKilled += OnEnemyKilledByBullet;
-        }
+        // Emit signal for external systems to handle
+        // SpawnSystem will listen and create the appropriate projectile
+        EmitSignal(SignalName.WeaponFired, GlobalPosition, _input.AimDirection, Name);
     }
 
     /// <summary>
