@@ -1,7 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dmwsxpg8master"]
+[gd_scene load_steps=2 format=3 uid="uid://ctypltlbvxgfl"]
 
-[ext_resource type="Script" path="res://scripts/Core/Master.cs" id="1_master"]
-[ext_resource type="PackedScene" uid="uid://debug_overlay" path="res://scenes/DebugOverlay.tscn" id="2_debug"]
+[ext_resource type="Script" uid="uid://deat68atxmum2" path="res://scripts/Core/Master.cs" id="1_master"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DebugOverlay.tscn" id="2_debug"]
 
 [node name="Master" type="Node"]
 script = ExtResource("1_master")

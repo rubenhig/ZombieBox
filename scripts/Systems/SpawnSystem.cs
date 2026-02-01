@@ -70,14 +70,19 @@ public partial class SpawnSystem : Node
         player.Name = peerId.ToString();
         _playersContainer.AddChild(player, true);
 
-        // Server owns the player body
-        player.SetMultiplayerAuthority(1);
-
-        // Input is owned by the peer
-        var input = player.GetNodeOrNull("PlayerInput");
-        if (input != null)
+        // Configure MultiplayerSynchronizer authorities
+        // ServerSynchronizer: Server has authority (syncs state to all clients)
+        var serverSync = player.GetNodeOrNull<MultiplayerSynchronizer>("ServerSynchronizer");
+        if (serverSync != null)
         {
-            input.SetMultiplayerAuthority((int)peerId);
+            serverSync.SetMultiplayerAuthority(1);
+        }
+
+        // InputSynchronizer: Client has authority (syncs input to server)
+        var inputSync = player.GetNodeOrNull<MultiplayerSynchronizer>("PlayerInput/InputSynchronizer");
+        if (inputSync != null)
+        {
+            inputSync.SetMultiplayerAuthority((int)peerId);
         }
 
         return player;
