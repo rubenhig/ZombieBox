@@ -34,7 +34,7 @@ public partial class GameStateManager : Node
 
     private Node _worldNode;
 
-    // Called by GameManager to inject dependencies
+    // Called by SessionSystem to inject dependencies
     public void Initialize(Node worldNode)
     {
         _worldNode = worldNode;

@@ -1,0 +1,36 @@
+[gd_scene load_steps=5 format=3 uid="uid://c8k2xwx21s5x1"]
+
+[ext_resource type="Script" path="res://scripts/Entities/Bullet.cs" id="1_vjgrn"]
+[ext_resource type="SceneReplicationConfig" uid="uid://bullet_sync_config" path="res://scenes/entities/bullet/bullet_state_server_to_all.tres" id="2_sync"]
+[ext_resource type="Texture2D" uid="uid://b11ge5rtwrk65" path="res://icon.svg" id="3_icon"]
+[ext_resource type="Script" path="res://scripts/Components/BulletVisuals.cs" id="4_vis"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_74dpl"]
+radius = 5.0
+height = 20.0
+
+[node name="Bullet" type="Area2D" groups=["bullets"]]
+collision_layer = 8
+collision_mask = 5
+script = ExtResource("1_vjgrn")
+
+[node name="BulletVisuals" type="Node" parent="."]
+script = ExtResource("4_vis")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = ExtResource("2_sync")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 0.6, 1)
+scale = Vector2(0.1, 0.1)
+texture = ExtResource("3_icon")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_74dpl")
+
+[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
+position = Vector2(1.19209e-07, 0)
+scale = Vector2(0.5, 0.5)
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
+[connection signal="screen_exited" from="VisibleOnScreenNotifier2D" to="." method="_on_screen_exited"]

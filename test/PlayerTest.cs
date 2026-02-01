@@ -11,7 +11,7 @@ namespace ZombieBox.Test
         public void TestInitialHealth()
         {
             // Verify that the player starts with the default health of 3
-            var playerScene = GD.Load<PackedScene>("res://scenes/player.tscn");
+            var playerScene = GD.Load<PackedScene>("res://scenes/entities/player/player.tscn");
             var player = playerScene.Instantiate<Player>();
             
             AssertThat(player.Health).IsEqual(3);
