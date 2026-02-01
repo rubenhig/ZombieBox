@@ -75,12 +75,12 @@ public partial class Master : Node
 
     public void LoadMenu()
     {
-        DeferredLoad("res://scenes/Menu.tscn");
+        DeferredLoad("res://scenes/ui/Menu.tscn");
     }
 
     public void LoadGame()
     {
-        DeferredLoad("res://scenes/GameSession.tscn");
+        DeferredLoad("res://scenes/systems/GameSession.tscn");
     }
 
     private void DeferredLoad(string path)

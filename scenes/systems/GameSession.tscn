@@ -4,9 +4,9 @@
 [ext_resource type="Script" path="res://scripts/Systems/WaveSystem.cs" id="2_wave"]
 [ext_resource type="Script" path="res://scripts/Systems/SpawnSystem.cs" id="2_spawn"]
 [ext_resource type="Script" path="res://scripts/Core/GameStateManager.cs" id="3_gamestate"]
-[ext_resource type="SceneReplicationConfig" path="res://scenes/gamestate_sync.tres" id="3_gamestate_sync"]
-[ext_resource type="PackedScene" uid="uid://c5w5xpg8iuxf1" path="res://scenes/HUD.tscn" id="4_hud"]
-[ext_resource type="PackedScene" uid="uid://lobbyscreen" path="res://scenes/LobbyScreen.tscn" id="5_lobby"]
+[ext_resource type="SceneReplicationConfig" path="res://scenes/systems/gamestate_server_to_all.tres" id="3_gamestate_sync"]
+[ext_resource type="PackedScene" uid="uid://c5w5xpg8iuxf1" path="res://scenes/ui/HUD.tscn" id="4_hud"]
+[ext_resource type="PackedScene" uid="uid://lobbyscreen" path="res://scenes/ui/LobbyScreen.tscn" id="5_lobby"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_default"]
 vertices = PackedVector2Array(2000, 2000, -500, 2000, -500, -500, 2000, -500)
@@ -33,15 +33,15 @@ script = ExtResource("2_wave")
 script = ExtResource("2_spawn")
 
 [node name="PlayerSpawner" type="MultiplayerSpawner" parent="Managers"]
-_spawnable_scenes = PackedStringArray("res://scenes/player.tscn")
+_spawnable_scenes = PackedStringArray("res://scenes/entities/player/player.tscn")
 spawn_path = NodePath("../../World/Entities/Players")
 
 [node name="EnemySpawner" type="MultiplayerSpawner" parent="Managers"]
-_spawnable_scenes = PackedStringArray("res://scenes/enemy.tscn")
+_spawnable_scenes = PackedStringArray("res://scenes/entities/enemy/enemy.tscn")
 spawn_path = NodePath("../../World/Entities/Enemies")
 
 [node name="BulletSpawner" type="MultiplayerSpawner" parent="Managers"]
-_spawnable_scenes = PackedStringArray("res://scenes/bullet.tscn")
+_spawnable_scenes = PackedStringArray("res://scenes/entities/bullet/bullet.tscn")
 spawn_path = NodePath("../../World/Entities/Bullets")
 
 [node name="World" type="Node2D" parent="."]
