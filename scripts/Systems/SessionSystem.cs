@@ -55,7 +55,7 @@ public partial class SessionSystem : Node
 
         // 4. Load Level Resource
         if (LevelScene == null)
-            LevelScene = GD.Load<PackedScene>("res://scenes/maps/Arena01.tscn");
+            LevelScene = GD.Load<PackedScene>("res://scenes/modes/Arena01.tscn");
 
         var levelContainer = GetNode("World/Level");
         var levelNode = LevelScene.Instantiate();

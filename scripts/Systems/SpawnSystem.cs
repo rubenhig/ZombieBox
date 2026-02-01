@@ -24,13 +24,13 @@ public partial class SpawnSystem : Node
     {
         // Load default scenes if not assigned via Editor
         if (PlayerScene == null)
-            PlayerScene = GD.Load<PackedScene>("res://scenes/player.tscn");
+            PlayerScene = GD.Load<PackedScene>("res://scenes/entities/player/player.tscn");
 
         if (EnemyScene == null)
-            EnemyScene = GD.Load<PackedScene>("res://scenes/enemy.tscn");
+            EnemyScene = GD.Load<PackedScene>("res://scenes/entities/enemy/enemy.tscn");
 
         if (BulletScene == null)
-            BulletScene = GD.Load<PackedScene>("res://scenes/bullet.tscn");
+            BulletScene = GD.Load<PackedScene>("res://scenes/entities/bullet/bullet.tscn");
     }
 
     /// <summary>
