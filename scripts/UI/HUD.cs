@@ -36,9 +36,9 @@ public partial class HUD : CanvasLayer
 
         player.HealthChanged += OnPlayerHealthChanged;
         player.EnemyKilled += OnPlayerKilledEnemy;
-        
-        // Update initial state
-        OnPlayerHealthChanged(player.Health);
+
+        // Refresh UI by asking player to re-emit all signals
+        player.RefreshUI();
     }
 
     public void ShowGameOver()

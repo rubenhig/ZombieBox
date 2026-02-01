@@ -83,10 +83,11 @@ public partial class SessionSystem : Node
         {
             WaveSystem.Configure(level.SpawnPoints, SpawnSystem);
 
-            // Connect WaveSystem to HUD
+            // Connect WaveSystem to HUD and refresh display
             if (_hud != null)
             {
                 WaveSystem.WaveChanged += _hud.OnWaveChanged;
+                WaveSystem.RefreshWaveDisplay(); // Re-emit current wave signal
             }
         }
 

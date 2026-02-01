@@ -32,7 +32,9 @@ public partial class Player : CharacterBody2D, IDamageable
     public int Health { get; private set; } = 3;
     public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol;
 
+    // Local tracking (not synchronized, only for UI)
     private int _kills = 0;
+
     private PlayerInput _input;
 
     public override void _EnterTree()
@@ -58,8 +60,15 @@ public partial class Player : CharacterBody2D, IDamageable
     public override void _Ready()
     {
         _input = GetNode<PlayerInput>("PlayerInput");
+        // UI state will be refreshed when HUD connects via RefreshUI()
+    }
 
-        // Emit initial state
+    /// <summary>
+    /// Re-emits all UI-related signals for components that connect after _Ready().
+    /// Called by SessionSystem after HUD connects.
+    /// </summary>
+    public void RefreshUI()
+    {
         EmitSignal(SignalName.HealthChanged, Health);
         EmitSignal(SignalName.EnemyKilled, _kills);
         EmitSignal(SignalName.WeaponSwitched, (int)CurrentWeapon);

@@ -44,6 +44,15 @@ public partial class WaveSystem : Node
         }
     }
 
+    /// <summary>
+    /// Re-emits WaveChanged signal for components that connect after initialization.
+    /// Called by SessionSystem after HUD connects.
+    /// </summary>
+    public void RefreshWaveDisplay()
+    {
+        EmitSignal(SignalName.WaveChanged, _currentWave);
+    }
+
     public void StartWaves()
     {
         GD.Print("WaveSystem: Waiting 2 seconds before first wave...");
