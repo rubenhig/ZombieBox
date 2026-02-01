@@ -29,11 +29,56 @@ public partial class Player : CharacterBody2D, IDamageable
     public delegate void DiedSignalEventHandler();
 
     // State properties - synchronized via MultiplayerSynchronizer
-    public int Health { get; private set; } = 3;
-    public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol;
+    private int _health = 3;
+    [Export]
+    public int Health
+    {
+        get => _health;
+        set
+        {
+            if (_health != value)
+            {
+                _health = value;
+                EmitSignal(SignalName.HealthChanged, _health);
 
-    // Local tracking (not synchronized, only for UI)
+                if (_health <= 0)
+                {
+                    Die();
+                }
+            }
+        }
+    }
+
+    private WeaponType _currentWeapon = WeaponType.Pistol;
+    [Export]
+    public WeaponType CurrentWeapon
+    {
+        get => _currentWeapon;
+        set
+        {
+            if (_currentWeapon != value)
+            {
+                _currentWeapon = value;
+                EmitSignal(SignalName.WeaponSwitched, (int)_currentWeapon);
+            }
+        }
+    }
+
+    // Kill tracking (synchronized for UI)
     private int _kills = 0;
+    [Export]
+    public int Kills
+    {
+        get => _kills;
+        set
+        {
+            if (_kills != value)
+            {
+                _kills = value;
+                EmitSignal(SignalName.EnemyKilled, _kills);
+            }
+        }
+    }
 
     private PlayerInput _input;
 
@@ -69,9 +114,13 @@ public partial class Player : CharacterBody2D, IDamageable
     /// </summary>
     public void RefreshUI()
     {
+        GD.Print($"Player {Name}: RefreshUI() called - Health={Health}, Kills={Kills}, Weapon={CurrentWeapon}");
         EmitSignal(SignalName.HealthChanged, Health);
-        EmitSignal(SignalName.EnemyKilled, _kills);
+        GD.Print($"Player {Name}: Emitted HealthChanged({Health})");
+        EmitSignal(SignalName.EnemyKilled, Kills);
+        GD.Print($"Player {Name}: Emitted EnemyKilled({Kills})");
         EmitSignal(SignalName.WeaponSwitched, (int)CurrentWeapon);
+        GD.Print($"Player {Name}: Emitted WeaponSwitched({(int)CurrentWeapon})");
     }
 
     // --- Client Input Commands (RPC to Server) ---
@@ -145,15 +194,10 @@ public partial class Player : CharacterBody2D, IDamageable
 
         if (Health <= 0) return;
 
-        Health -= damage;
+        Health -= damage;  // Setter emits HealthChanged signal automatically
         GD.Print($"{Name} took damage. Health: {Health}");
 
-        EmitSignal(SignalName.HealthChanged, Health);
-
-        if (Health <= 0)
-        {
-            Die();
-        }
+        // Die() is called by Health setter if health <= 0
     }
 
     // --- Event Handlers ---
@@ -166,8 +210,7 @@ public partial class Player : CharacterBody2D, IDamageable
     {
         if (!NetworkUtils.IsServer()) return;
 
-        _kills++;
-        EmitSignal(SignalName.EnemyKilled, _kills);
+        Kills++;  // Setter emits EnemyKilled signal automatically
     }
 
     /// <summary>

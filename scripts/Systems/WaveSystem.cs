@@ -50,7 +50,9 @@ public partial class WaveSystem : Node
     /// </summary>
     public void RefreshWaveDisplay()
     {
+        GD.Print($"WaveSystem: RefreshWaveDisplay() called - CurrentWave={_currentWave}");
         EmitSignal(SignalName.WaveChanged, _currentWave);
+        GD.Print($"WaveSystem: Emitted WaveChanged({_currentWave})");
     }
 
     public void StartWaves()

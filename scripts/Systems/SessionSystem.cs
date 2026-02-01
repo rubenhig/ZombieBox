@@ -248,10 +248,17 @@ public partial class SessionSystem : Node
             _playersAlive++;
 
             // Only connect HUD to the LOCAL player (owned by this client)
-            if (_hud != null && player.Name == Multiplayer.GetUniqueId().ToString())
+            var myId = Multiplayer.GetUniqueId().ToString();
+            GD.Print($"SessionSystem: Checking HUD connection - _hud={_hud != null}, player.Name='{player.Name}', myId='{myId}', match={player.Name == myId}");
+
+            if (_hud != null && player.Name == myId)
             {
                 _hud.RegisterPlayer(player);
                 GD.Print($"SessionSystem: HUD connected to local player {player.Name}");
+            }
+            else
+            {
+                GD.Print($"SessionSystem: Skipping HUD connection (not local player or HUD is null)");
             }
 
             // Connect player events to systems
