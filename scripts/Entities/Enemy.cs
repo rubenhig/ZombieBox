@@ -1,10 +1,14 @@
 using Godot;
 using System;
 
+/// <summary>
+/// Enemy entity - Server-authoritative zombie with simple chase AI.
+/// Implements IDamageable for damage handling.
+/// </summary>
 public partial class Enemy : CharacterBody2D, IDamageable
 {
     [Export]
-    public float Speed = 150.0f;
+    public float Speed { get; set; } = 150.0f;
 
     [Export]
     public int Health { get; private set; } = 1;
@@ -12,6 +16,7 @@ public partial class Enemy : CharacterBody2D, IDamageable
     // IDamageable Implementation
     public event Action Died;
 
+    // Godot signal version of Died (for editor connections)
     [Signal]
     public delegate void DiedSignalEventHandler();
 
@@ -29,10 +34,14 @@ public partial class Enemy : CharacterBody2D, IDamageable
         _target = GetTree().GetFirstNodeInGroup("players") as CharacterBody2D;
     }
 
+    /// <summary>
+    /// Applies damage to the enemy. Server-only.
+    /// Implements IDamageable interface.
+    /// </summary>
     public void TakeDamage(int amount)
     {
-        // Authoritative check
-        if (!Multiplayer.IsServer()) return;
+        // Server authority check
+        if (!NetworkUtils.IsServer()) return;
 
         Health -= amount;
         if (Health <= 0)
@@ -41,28 +50,39 @@ public partial class Enemy : CharacterBody2D, IDamageable
         }
     }
 
-    // Logic for dying is internal to the Entity, triggered by state change (Health <= 0)
+    /// <summary>
+    /// Handles enemy death. Server-only.
+    /// Emits Died signal for systems (like WaveSystem) to listen to.
+    /// </summary>
     private void Die()
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
+        // Emit signals for systems to react
         EmitSignal(SignalName.DiedSignal);
         Died?.Invoke();
+
+        // Remove from game
         QueueFree();
     }
 
+    /// <summary>
+    /// Server-side physics process - handles AI and movement.
+    /// Simple chase AI: finds nearest player and navigates towards them.
+    /// </summary>
     public override void _PhysicsProcess(double delta)
     {
-        // Authoritative physics: only calculated on server
-        if (!Multiplayer.IsServer()) return;
+        // Server authority - only server calculates AI and physics
+        if (!NetworkUtils.IsServer()) return;
 
+        // Find target if we don't have one
         if (_target == null || !IsInstanceValid(_target))
         {
-            // Try to find a target if we don't have one
             _target = GetTree().GetFirstNodeInGroup("players") as CharacterBody2D;
 
             if (_target == null)
             {
+                // No target found, stop moving
                 Velocity = Vector2.Zero;
                 MoveAndSlide();
                 return;
@@ -79,38 +99,48 @@ public partial class Enemy : CharacterBody2D, IDamageable
         // Calculate desired velocity
         Vector2 newVelocity = (nextPathPosition - currentAgentPosition).Normalized() * Speed;
 
-        // Rotate towards movement
+        // Rotate towards movement direction
         if (newVelocity != Vector2.Zero)
         {
             Rotation = newVelocity.Angle();
         }
 
-        // Send to avoidance system (this will trigger OnVelocityComputed)
+        // Send to avoidance system (triggers OnVelocityComputed callback)
         _navAgent.Velocity = newVelocity;
     }
 
+    /// <summary>
+    /// Callback from NavigationAgent2D with collision-avoided velocity.
+    /// </summary>
     private void OnVelocityComputed(Vector2 safeVelocity)
     {
-        // Safe velocity also only matters on server
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         Velocity = safeVelocity;
         MoveAndSlide();
     }
 
+    /// <summary>
+    /// Manually set the target for this enemy to chase.
+    /// Useful for directing enemies to specific players.
+    /// </summary>
     public void SetTarget(CharacterBody2D target)
     {
         _target = target;
     }
 
+    /// <summary>
+    /// Called when enemy's damage area collides with a player.
+    /// Deals damage to the player and destroys the enemy.
+    /// </summary>
     private void _on_damage_area_body_entered(Node2D body)
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         if (body is IDamageable target)
         {
             target.TakeDamage(1);
-            Die(); // The enemy is destroyed after attacking
+            Die(); // Zombie attacks once then dies
         }
     }
 }

@@ -1,20 +1,23 @@
 using Godot;
 using System;
 
-public partial class PlayerServerController : Node
+/// <summary>
+/// PlayerController Component - Server-side physics and game logic.
+/// Only exists on the server. Reads PlayerInput state and applies physics.
+/// </summary>
+public partial class PlayerController : Node
 {
     private Player _player;
     private PlayerInput _input;
     private Timer _shootTimer;
-    private float _machineGunFireRate = 5.0f;
 
-    // Previous frame state for Edge Detection
-    private bool _wasShooting = false;
+    [Export]
+    public float MachineGunFireRate { get; set; } = 5.0f;
 
     public override void _Ready()
     {
-        // STRICT SEPARATION: This node should ONLY exist on the server.
-        if (!Multiplayer.IsServer())
+        // Server-only component: Remove on clients
+        if (!NetworkUtils.IsServer())
         {
             QueueFree();
             return;
@@ -23,33 +26,28 @@ public partial class PlayerServerController : Node
         _player = GetParent<Player>();
         _input = _player.GetNode<PlayerInput>("PlayerInput");
 
-        // Timer belongs to logic, so we create it here or manage it here
+        // Setup machine gun fire rate timer
         _shootTimer = new Timer();
         AddChild(_shootTimer);
-        _shootTimer.WaitTime = 1.0f / _machineGunFireRate;
+        _shootTimer.WaitTime = 1.0f / MachineGunFireRate;
         _shootTimer.OneShot = true;
     }
 
     public override void _PhysicsProcess(double delta)
     {
-        // No need for IsServer() check here, because this node doesn't exist on clients.
         if (_player.Health <= 0) return;
 
         HandleMovement();
         HandleShooting();
-
-        // Update previous state for next frame
-        _wasShooting = _input.IsShooting;
     }
 
     private void HandleMovement()
     {
-        // Read intent from Input component
+        // Read synchronized input from PlayerInput component
         Vector2 direction = _input.MoveVector;
 
         if (direction != Vector2.Zero)
         {
-            GD.Print($"Server Controller Moving: {direction}"); 
             _player.Velocity = direction.Normalized() * _player.Speed;
             _player.Rotation = _input.AimDirection.Angle();
         }
@@ -58,26 +56,21 @@ public partial class PlayerServerController : Node
             _player.Velocity = Vector2.Zero;
         }
 
-        // Apply physics to the Body
+        // Apply physics movement
         _player.MoveAndSlide();
     }
 
     private void HandleShooting()
     {
-        // Machine Gun uses State Synchronization (Continuous fire)
-        // Pistol is handled via RPC in Player.cs for reliable "JustPressed" feel
+        // Machine Gun: Continuous fire based on synchronized state
+        // Pistol: Single-shot handled via RPC in Player.cs
         if (_player.CurrentWeapon == WeaponType.MachineGun)
         {
             if (_input.IsShooting && _shootTimer.IsStopped())
             {
-                PerformShoot();
+                _player.DoFire();
                 _shootTimer.Start();
             }
         }
-    }
-
-    private void PerformShoot()
-    {
-        _player.DoFire();
     }
 }

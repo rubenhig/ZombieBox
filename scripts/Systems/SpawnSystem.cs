@@ -45,11 +45,12 @@ public partial class SpawnSystem : Node
 
     /// <summary>
     /// Spawns a player for the given peer ID.
+    /// Server-only.
     /// </summary>
     /// <returns>The spawned Player instance, or null if spawn failed.</returns>
     public Player SpawnPlayer(long peerId)
     {
-        if (!Multiplayer.IsServer()) return null;
+        if (!NetworkUtils.IsServer()) return null;
 
         if (_playersContainer == null)
         {
@@ -84,11 +85,12 @@ public partial class SpawnSystem : Node
 
     /// <summary>
     /// Spawns an enemy at the given position.
+    /// Server-only.
     /// </summary>
     /// <returns>The spawned Enemy instance, or null if spawn failed.</returns>
     public Enemy SpawnEnemy(Vector2 position)
     {
-        if (!Multiplayer.IsServer()) return null;
+        if (!NetworkUtils.IsServer()) return null;
 
         if (_enemiesContainer == null)
         {
@@ -108,6 +110,7 @@ public partial class SpawnSystem : Node
 
     /// <summary>
     /// Spawns a bullet at the given position with the specified direction.
+    /// Server-only.
     /// </summary>
     /// <param name="position">World position to spawn the bullet.</param>
     /// <param name="direction">Direction the bullet will travel.</param>
@@ -115,7 +118,7 @@ public partial class SpawnSystem : Node
     /// <returns>The spawned Bullet instance, or null if spawn failed.</returns>
     public Bullet SpawnBullet(Vector2 position, Vector2 direction, string ownerName)
     {
-        if (!Multiplayer.IsServer()) return null;
+        if (!NetworkUtils.IsServer()) return null;
 
         if (_bulletsContainer == null)
         {

@@ -5,29 +5,32 @@ public enum WeaponType { Pistol, MachineGun }
 
 public partial class Player : CharacterBody2D, IDamageable
 {
-    [Export] public float Speed = 300.0f;
+    [Export]
+    public float Speed { get; set; } = 300.0f;
 
+    // Signals for state changes
     [Signal]
     public delegate void HealthChangedEventHandler(int newHealth);
+
     [Signal]
     public delegate void EnemyKilledEventHandler(int newKills);
+
+    [Signal]
+    public delegate void WeaponSwitchedEventHandler(WeaponType newWeapon);
 
     // IDamageable Implementation
     public event Action Died;
 
-    // Legacy Signal for Godot Editor support (optional, can be bridged)
+    // Godot signal version of Died (for editor connections)
     [Signal]
     public delegate void DiedSignalEventHandler();
 
-    // State properties
+    // State properties - synchronized via MultiplayerSynchronizer
     public int Health { get; private set; } = 3;
-    public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol; // Public for Controller
+    public WeaponType CurrentWeapon { get; private set; } = WeaponType.Pistol;
 
-    private int _kills = 0; // Restored field
-
+    private int _kills = 0;
     private PlayerInput _input;
-    private Timer _shootTimer;
-    private float _machineGunFireRate = 5.0f; // Shots per second
 
     public override void _EnterTree()
     {
@@ -53,18 +56,18 @@ public partial class Player : CharacterBody2D, IDamageable
     {
         _input = GetNode<PlayerInput>("PlayerInput");
 
-        _shootTimer = new Timer();
-        AddChild(_shootTimer);
-        _shootTimer.WaitTime = 1.0f / _machineGunFireRate;
-        _shootTimer.OneShot = true;
-
+        // Emit initial state
         EmitSignal(SignalName.HealthChanged, Health);
         EmitSignal(SignalName.EnemyKilled, _kills);
+        EmitSignal(SignalName.WeaponSwitched, (int)CurrentWeapon);
     }
 
-    // --- Input & Networking ---
+    // --- Client Input Commands (RPC to Server) ---
 
-    // Called by PlayerInput (Local Client)
+    /// <summary>
+    /// Called by PlayerInput when player presses shoot.
+    /// Sends RPC to server for pistol shots.
+    /// </summary>
     public void TryShoot()
     {
         if (CurrentWeapon == WeaponType.Pistol)
@@ -76,11 +79,14 @@ public partial class Player : CharacterBody2D, IDamageable
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
     private void RequestFire()
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
         DoFire();
     }
 
-    // Called by PlayerInput (Local Client)
+    /// <summary>
+    /// Called by PlayerInput when player presses switch weapon.
+    /// Sends RPC to server.
+    /// </summary>
     public void TrySwitchWeapon()
     {
         RpcId(1, nameof(RequestSwitchWeapon));
@@ -89,11 +95,16 @@ public partial class Player : CharacterBody2D, IDamageable
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
     private void RequestSwitchWeapon()
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
         SwitchWeapon();
     }
 
-    // Called by ServerController (MachineGun) or RPC (Pistol)
+    // --- Server-side Actions ---
+
+    /// <summary>
+    /// Fires a bullet. Called by PlayerController (MachineGun) or RPC (Pistol).
+    /// Server-only.
+    /// </summary>
     public void DoFire()
     {
         // Get SpawnSystem from the scene tree
@@ -104,8 +115,7 @@ public partial class Player : CharacterBody2D, IDamageable
             return;
         }
 
-        var input = GetNode<PlayerInput>("PlayerInput");
-        Bullet bullet = spawnSystem.SpawnBullet(GlobalPosition, input.AimDirection, Name);
+        Bullet bullet = spawnSystem.SpawnBullet(GlobalPosition, _input.AimDirection, Name);
 
         if (bullet != null)
         {
@@ -113,19 +123,24 @@ public partial class Player : CharacterBody2D, IDamageable
         }
     }
 
-    // --- State Modification Methods (Called by ServerController) ---
-
+    /// <summary>
+    /// Switches the current weapon. Server-only.
+    /// </summary>
     public void SwitchWeapon()
     {
         CurrentWeapon = CurrentWeapon == WeaponType.Pistol ? WeaponType.MachineGun : WeaponType.Pistol;
         GD.Print($"{Name} switched to {CurrentWeapon}");
-        // Here we could play a sound or animation
+        EmitSignal(SignalName.WeaponSwitched, (int)CurrentWeapon);
     }
 
+    /// <summary>
+    /// Applies damage to the player. Server-only.
+    /// Implements IDamageable interface.
+    /// </summary>
     public void TakeDamage(int damage)
     {
-        // Guard: Only allow server to call this (redundant if called by ServerController, but safe)
-        if (!Multiplayer.IsServer()) return;
+        // Server authority check
+        if (!NetworkUtils.IsServer()) return;
 
         if (Health <= 0) return;
 
@@ -142,23 +157,30 @@ public partial class Player : CharacterBody2D, IDamageable
 
     // --- Event Handlers ---
 
+    /// <summary>
+    /// Called when a bullet owned by this player kills an enemy.
+    /// Server-only.
+    /// </summary>
     public void OnEnemyKilledByBullet()
     {
-        // Logic might stay here or move to controller.
-        // Keeping it here makes it easy to bind to the Bullet signal.
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         _kills++;
         EmitSignal(SignalName.EnemyKilled, _kills);
     }
 
+    /// <summary>
+    /// Handles player death. Server-only.
+    /// Emits Died signal for systems to listen to.
+    /// </summary>
     private void Die()
     {
         GD.Print($"{Name} died!");
 
-        // Disable visuals locally
+        // Hide the player
         Hide();
 
+        // Emit signals for systems to react
         EmitSignal(SignalName.DiedSignal);
         Died?.Invoke();
     }

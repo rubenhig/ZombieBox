@@ -1,19 +1,23 @@
 using Godot;
 using System;
 
+/// <summary>
+/// Bullet entity - Server-authoritative projectile with simple straight-line movement.
+/// Synchronized to clients via MultiplayerSpawner.
+/// </summary>
 public partial class Bullet : Area2D
 {
     [Signal]
     public delegate void EnemyKilledEventHandler();
 
     [Export]
-    public float Speed = 600.0f;
+    public float Speed { get; set; } = 600.0f;
 
     [Export]
-    public int Damage = 1;
+    public int Damage { get; set; } = 1;
 
     [Export]
-    public double Lifetime = 3.0; // Seconds before auto-destroy
+    public double Lifetime { get; set; } = 3.0; // Seconds before auto-destroy
 
     private Vector2 _direction = Vector2.Zero;
     private bool _initialized = false;
@@ -21,56 +25,62 @@ public partial class Bullet : Area2D
     public override void _Ready()
     {
         // Server: Always initialized immediately
-        // Client: Wait for sync data to prevent (0,0) glitch
-        if (Multiplayer.IsServer())
+        // Client: Wait for sync data to prevent (0,0) spawn glitch
+        if (NetworkUtils.IsServer())
         {
             _initialized = true;
         }
         else
         {
-            // Start invisible and wait for position data
+            // Start invisible and wait for position data from server
             Visible = false;
-            SetPhysicsProcess(true); // Ensure process runs to check for data
+            SetPhysicsProcess(true);
         }
     }
 
+    /// <summary>
+    /// Sets the bullet's direction and rotation. Server-only.
+    /// Called by SpawnSystem when spawning the bullet.
+    /// </summary>
     public void SetDirection(Vector2 direction)
     {
         _direction = direction.Normalized();
         Rotation = _direction.Angle();
-        // If set manually (Server), we are initialized
         _initialized = true;
     }
 
+    /// <summary>
+    /// Physics process - handles movement and lifetime.
+    /// Movement runs on both server and clients (client-side prediction).
+    /// Lifetime and collision logic only on server.
+    /// </summary>
     public override void _PhysicsProcess(double delta)
     {
-        // --- Client Initialization Logic ---
+        // --- Client Initialization ---
         if (!_initialized)
         {
-            // Check if we have received valid data from server
-            // Assumption: (0,0) with Rotation 0 is the uninitialized state.
-            // It's rare for a valid bullet to be exactly at 0,0 with 0 rotation.
+            // Wait for network sync - check if we received valid position/rotation
             if (GlobalPosition.IsZeroApprox() && Mathf.IsZeroApprox(Rotation))
             {
-                return; // Still waiting for sync...
+                return; // Still waiting for server data
             }
 
-            // Data arrived! Initialize.
+            // Data received! Initialize from synced state
             _initialized = true;
             Visible = true;
 
-            // Client-side Prediction: Start moving based on the synced rotation
+            // Client-side prediction: derive direction from synced rotation
             _direction = Vector2.FromAngle(Rotation);
         }
 
-        // --- Movement Logic ---
+        // --- Movement (Both server and clients) ---
         if (_direction != Vector2.Zero)
         {
             Position += _direction * Speed * (float)delta;
         }
 
-        // --- Server Lifecycle Logic ---
-        if (Multiplayer.IsServer())
+        // --- Server Lifecycle ---
+        if (NetworkUtils.IsServer())
         {
             Lifetime -= delta;
             if (Lifetime <= 0)
@@ -80,28 +90,27 @@ public partial class Bullet : Area2D
         }
     }
 
-    // We remove the dependency on _on_screen_exited for game logic reliability
-    private void _on_screen_exited()
-    {
-        // Optional optimization
-    }
-
+    /// <summary>
+    /// Called when bullet collides with something. Server-only.
+    /// Applies damage to enemies and destroys the bullet.
+    /// </summary>
     private void _on_body_entered(Node2D body)
     {
-        // Only server processes hit logic and destruction
-        if (!Multiplayer.IsServer()) return;
+        // Only server processes collision logic
+        if (!NetworkUtils.IsServer()) return;
 
         if (body.IsInGroup("enemies"))
         {
-            // Notify shooter (Player) that we hit something
+            // Notify shooter that we hit an enemy
             EmitSignal(SignalName.EnemyKilled);
 
-            // Apply damage using Domain Interface
+            // Apply damage
             if (body is IDamageable target)
             {
                 target.TakeDamage(Damage);
             }
 
+            // Destroy bullet
             QueueFree();
         }
     }

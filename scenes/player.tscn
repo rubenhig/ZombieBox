@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/Entities/Player.cs" id="1_gx2j3"]
 [ext_resource type="Texture2D" uid="uid://b11ge5rtwrk65" path="res://icon.svg" id="2_c2vsc"]
 [ext_resource type="Script" path="res://scripts/Components/PlayerInput.cs" id="3_input"]
-[ext_resource type="Script" path="res://scripts/Components/PlayerServerController.cs" id="3_server_logic"]
+[ext_resource type="Script" path="res://scripts/Components/PlayerController.cs" id="3_server_logic"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/player_server_sync.tres" id="4_sync_server"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/player_input_sync.tres" id="5_sync_input"]
 [ext_resource type="Script" path="res://scripts/Components/PlayerVisuals.cs" id="7_visuals"]

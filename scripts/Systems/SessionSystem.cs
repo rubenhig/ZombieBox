@@ -68,7 +68,7 @@ public partial class SessionSystem : Node
             _gameStateManager.StateChanged += OnGameStateChanged;
 
             // Server Logic: Set initial State
-            if (Multiplayer.IsServer())
+            if (NetworkUtils.IsServer())
             {
                 _gameStateManager.SetState(GameState.WaitingToStart);
             }
@@ -89,15 +89,10 @@ public partial class SessionSystem : Node
         Multiplayer.PeerDisconnected += OnPeerDisconnected;
 
         // 6. Handle Local Host / Singleplayer immediately
-        if (Multiplayer.IsServer())
+        if (NetworkUtils.IsServer())
         {
             // Check if we are running as a Dedicated Server (Headless)
-            // In Godot 4, headless mode is detected via DisplayServer name
             bool isHeadless = DisplayServer.GetName() == "headless";
-
-            // Also checking command line args as a fallback or explicit override if "headless" isn't set on some OS
-            // But for now, let's rely on the concept: "If I am ID 1, do I play?"
-            // A dedicated server (ID 1) does NOT play.
 
             if (!isHeadless)
             {
@@ -123,7 +118,7 @@ public partial class SessionSystem : Node
 
     private void OnPeerConnected(long id)
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         GD.Print($"SessionSystem: Peer {id} joined session.");
         _connectedPeerIds.Add(id);
@@ -142,7 +137,7 @@ public partial class SessionSystem : Node
         GD.Print($"SessionSystem: Peer {id} left session.");
         _connectedPeerIds.Remove(id);
 
-        if (Multiplayer.IsServer() && _playersContainer != null)
+        if (NetworkUtils.IsServer() && _playersContainer != null)
         {
             var player = _playersContainer.GetNodeOrNull(id.ToString());
             player?.QueueFree();
@@ -153,7 +148,7 @@ public partial class SessionSystem : Node
 
     private void CheckStartConditions()
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         bool isOffline = Multiplayer.MultiplayerPeer is OfflineMultiplayerPeer;
         int currentCount = _connectedPeerIds.Count;
@@ -201,7 +196,7 @@ public partial class SessionSystem : Node
 
         if (state == GameState.Playing)
         {
-            if (Multiplayer.IsServer())
+            if (NetworkUtils.IsServer())
             {
                 GD.Print("SessionSystem: Game Starting! Spawning all players...");
                 foreach (long id in _connectedPeerIds)
@@ -223,7 +218,7 @@ public partial class SessionSystem : Node
 
     private void SpawnPlayer(long id)
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         if (SpawnSystem == null)
         {
@@ -256,7 +251,7 @@ public partial class SessionSystem : Node
 
     private void OnPlayerDied()
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         _playersAlive--;
         GD.Print($"SessionSystem: Player Died. Alive: {_playersAlive}");

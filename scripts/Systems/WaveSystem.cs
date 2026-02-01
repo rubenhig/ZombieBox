@@ -84,7 +84,7 @@ public partial class WaveSystem : Node
 
     private void SpawnEnemy()
     {
-        if (!Multiplayer.IsServer()) return;
+        if (!NetworkUtils.IsServer()) return;
 
         int spawnIndex = new Random().Next(0, _spawnPoints.Count);
         Marker2D spawnPoint = _spawnPoints[spawnIndex];
