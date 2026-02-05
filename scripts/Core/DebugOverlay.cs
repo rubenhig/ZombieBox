@@ -16,7 +16,7 @@ public partial class DebugOverlay : CanvasLayer
     public override void _Process(double delta)
     {
         // Toggle with F3
-        if (Input.IsActionJustPressed("toggle_debug") || Input.IsPhysicalKeyPressed(Key.F3))
+        if (Input.IsActionJustPressed("toggle_debug"))
         {
             Visible = !Visible;
         }
