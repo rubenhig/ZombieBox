@@ -7,6 +7,7 @@
 [ext_resource type="SceneReplicationConfig" path="res://scenes/entities/player/player_state_server_to_all.tres" id="4_sync_server"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/entities/player/player_input_client_to_server.tres" id="5_sync_input"]
 [ext_resource type="Script" path="res://scripts/Components/PlayerVisuals.cs" id="7_visuals"]
+[ext_resource type="Script" path="res://scripts/Netcode/ClientPredictor.cs" id="7_predictor"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_gun.png" id="8_tex_pistol"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_machine.png" id="9_tex_machine"]
 
@@ -36,6 +37,9 @@ script = ExtResource("7_visuals")
 PlayerRef = NodePath("..")
 TexturePistol = ExtResource("8_tex_pistol")
 TextureMachineGun = ExtResource("9_tex_machine")
+
+[node name="ClientPredictor" type="Node" parent="."]
+script = ExtResource("7_predictor")
 
 [node name="VisualRoot" type="Node2D" parent="."]
 
