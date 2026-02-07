@@ -39,6 +39,9 @@ public partial class PlayerController : Node
 
         HandleMovement();
         HandleShooting();
+
+        // Stamp which tick we just processed
+        _player.LastProcessedTick = _input.InputTick;
     }
 
     private void HandleMovement()

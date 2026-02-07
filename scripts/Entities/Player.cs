@@ -88,6 +88,10 @@ public partial class Player : CharacterBody2D, IDamageable
         }
     }
 
+    // Last tick processed by server (for client prediction reconciliation)
+    [Export]
+    public uint LastProcessedTick { get; set; } = 0;
+
     private PlayerInput _input;
 
     public override void _EnterTree()

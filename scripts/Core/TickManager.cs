@@ -39,6 +39,16 @@ public partial class TickManager : Node
         {
             GD.Print("TickManager: Client mode - receiving ServerTick from server");
         }
+
+        // Add MultiplayerSynchronizer for ServerTick replication
+        var synchronizer = new MultiplayerSynchronizer();
+        AddChild(synchronizer);
+
+        // Load and set replication config
+        var config = GD.Load<SceneReplicationConfig>("res://scenes/systems/tickmanager_sync.tres");
+        synchronizer.ReplicationConfig = config;
+
+        GD.Print("TickManager: Autoload initialized with synchronizer");
     }
 
     public override void _PhysicsProcess(double delta)

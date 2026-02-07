@@ -18,6 +18,10 @@ public partial class PlayerInput : Node
     [Export]
     public bool IsShooting { get; set; } = false;
 
+    // Tick stamp: which tick this input was captured on
+    [Export]
+    public uint InputTick { get; set; } = 0;
+
     // Edge-detected actions (not synchronized, handled via RPC)
     [Export]
     public bool ShootJustPressed { get; set; } = false;
@@ -26,10 +30,14 @@ public partial class PlayerInput : Node
     public bool SwitchWeaponJustPressed { get; set; } = false;
 
     private Player _player;
+    private TickManager _tickManager;
 
     public override void _Ready()
     {
         _player = GetParent<Player>();
+
+        // Get TickManager autoload
+        _tickManager = GetNode<TickManager>("/root/TickManager");
     }
 
     public override void _PhysicsProcess(double delta)
@@ -43,6 +51,9 @@ public partial class PlayerInput : Node
 
     private void ReadInput()
     {
+        // Stamp input with current client tick
+        InputTick = _tickManager.GetClientTick();
+
         // Read continuous input
         MoveVector = Input.GetVector("move_left", "move_right", "move_up", "move_down");
 
