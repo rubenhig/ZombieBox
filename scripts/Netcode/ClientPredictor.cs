@@ -249,24 +249,17 @@ public partial class ClientPredictor : Node
 	}
 
 	/// <summary>
-	/// Apply movement physics.
-	/// TODO (Commit 2.4): Extract to MovementUtils.ApplyMovement() shared with server.
-	/// For now, duplicates logic from PlayerController.
+	/// Apply movement physics using shared logic.
+	/// Uses MovementUtils to ensure identical physics with server.
 	/// </summary>
 	private void ApplyMovement(Vector2 moveVector, Vector2 aimDirection)
 	{
-		if (moveVector != Vector2.Zero)
-		{
-			_player.Velocity = moveVector.Normalized() * _player.Speed;
-			_player.Rotation = aimDirection.Angle();
-		}
-		else
-		{
-			_player.Velocity = Vector2.Zero;
-		}
-
-		// Decision 5: Use MoveAndSlide to detect collisions
-		_player.MoveAndSlide();
+		MovementUtils.ApplyMovement(
+			_player,
+			moveVector,
+			aimDirection,
+			_player.Speed
+		);
 	}
 
 	// ========================================

@@ -46,21 +46,14 @@ public partial class PlayerController : Node
 
     private void HandleMovement()
     {
-        // Read synchronized input from PlayerInput component
-        Vector2 direction = _input.MoveVector;
-
-        if (direction != Vector2.Zero)
-        {
-            _player.Velocity = direction.Normalized() * _player.Speed;
-            _player.Rotation = _input.AimDirection.Angle();
-        }
-        else
-        {
-            _player.Velocity = Vector2.Zero;
-        }
-
-        // Apply physics movement
-        _player.MoveAndSlide();
+        // Use shared movement logic (same as ClientPredictor)
+        // This ensures server and client physics are IDENTICAL
+        MovementUtils.ApplyMovement(
+            _player,
+            _input.MoveVector,
+            _input.AimDirection,
+            _player.Speed
+        );
     }
 
     private void HandleShooting()
