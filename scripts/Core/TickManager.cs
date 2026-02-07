@@ -57,18 +57,57 @@ public partial class TickManager : Node
         if (NetworkUtils.IsServer())
         {
             ServerTick++;
+            ClientTick++; // Server's ClientTick matches ServerTick
         }
-
-        // Client initial synchronization: set ClientTick to ServerTick on first valid update
-        if (!_clientSynchronized && ServerTick > 0)
+        else
         {
-            ClientTick = ServerTick;
-            _clientSynchronized = true;
-            GD.Print($"TickManager: Client synchronized at tick {ServerTick}");
-        }
+            // CLIENT LOGIC
 
-        // All peers (server + clients) increment their local client tick
-        ClientTick++;
+            // 1. Initial synchronization: Set ClientTick ahead of ServerTick
+            if (!_clientSynchronized && ServerTick > 0)
+            {
+                // Sync with latency compensation: start 10 ticks ahead
+                ClientTick = ServerTick + 10;
+                _clientSynchronized = true;
+                GD.Print($"TickManager: Client synchronized - ServerTick={ServerTick}, ClientTick={ClientTick}, InitialDiff={TickDiff}");
+            }
+
+            // 2. Drift correction: Keep ClientTick in optimal range
+            if (_clientSynchronized)
+            {
+                int currentDiff = TickDiff;
+
+                // Target range: +5 to +15 ticks ahead (83ms to 250ms)
+                if (currentDiff < 5)
+                {
+                    // Too far behind: Speed up (increment by 2 this frame)
+                    ClientTick += 2;
+                    if (ClientTick % 60 == 0)
+                    {
+                        GD.Print($"TickManager: [DRIFT CORRECTION] Speeding up - Diff was {currentDiff}, now {TickDiff}");
+                    }
+                }
+                else if (currentDiff > 15)
+                {
+                    // Too far ahead: Slow down (don't increment this frame)
+                    if (ClientTick % 60 == 0)
+                    {
+                        GD.Print($"TickManager: [DRIFT CORRECTION] Slowing down - Diff was {currentDiff}");
+                    }
+                    // Don't increment ClientTick this frame
+                }
+                else
+                {
+                    // In optimal range: Normal increment
+                    ClientTick++;
+                }
+            }
+            else
+            {
+                // Not synchronized yet, increment normally
+                ClientTick++;
+            }
+        }
 
         // Debug output every 60 ticks (1 second)
         if (ClientTick % 60 == 0)
