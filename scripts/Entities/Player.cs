@@ -8,6 +8,14 @@ public partial class Player : CharacterBody2D, IDamageable
     [Export]
     public float Speed { get; set; } = 300.0f;
 
+    // Velocity wrapper for MultiplayerSynchronizer (built-in Velocity is not [Export])
+    [Export]
+    public Vector2 SyncedVelocity
+    {
+        get => Velocity;
+        set => Velocity = value;
+    }
+
     // Signals for external systems (SessionSystem, HUD, SpawnSystem, etc.)
     [Signal]
     public delegate void HealthChangedEventHandler(int newHealth);

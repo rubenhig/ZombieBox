@@ -13,6 +13,7 @@ public partial class PlayerVisuals : Node
     public Texture2D TextureMachineGun { get; set; }
 
     private Sprite2D _sprite;
+    private Node2D _visualRoot;
     private PlayerInput _input;
 
     // Juice parameters
@@ -26,7 +27,7 @@ public partial class PlayerVisuals : Node
         {
             // Fallback: Try to find parent
             PlayerRef = GetParentOrNull<Player>();
-            
+
             if (PlayerRef == null)
             {
                 GD.PrintErr("PlayerVisuals: PlayerRef is not assigned and parent is not Player!");
@@ -34,7 +35,8 @@ public partial class PlayerVisuals : Node
             }
         }
 
-        _sprite = PlayerRef.GetNode<Sprite2D>("Sprite2D");
+        _visualRoot = PlayerRef.GetNode<Node2D>("VisualRoot");
+        _sprite = _visualRoot.GetNode<Sprite2D>("Sprite2D");
         _input = PlayerRef.GetNode<PlayerInput>("PlayerInput");
     }
 

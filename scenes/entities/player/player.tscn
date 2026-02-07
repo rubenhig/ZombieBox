@@ -37,7 +37,9 @@ PlayerRef = NodePath("..")
 TexturePistol = ExtResource("8_tex_pistol")
 TextureMachineGun = ExtResource("9_tex_machine")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="VisualRoot" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="VisualRoot"]
 texture = ExtResource("8_tex_pistol")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

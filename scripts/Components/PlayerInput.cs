@@ -32,7 +32,7 @@ public partial class PlayerInput : Node
         _player = GetParent<Player>();
     }
 
-    public override void _Process(double delta)
+    public override void _PhysicsProcess(double delta)
     {
         // Only read input if this node belongs to the local player
         if (IsMultiplayerAuthority())
