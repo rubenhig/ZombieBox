@@ -5,6 +5,8 @@ using System;
 /// TickManager - Maintains synchronized tick counter across server and clients.
 /// Server increments ServerTick at 60Hz, clients receive updates via MultiplayerSynchronizer.
 /// Clients maintain ClientTick for local prediction and interpolation.
+///
+/// Lifecycle: Ticks only run during Playing state, reset to 0 when game starts.
 /// </summary>
 public partial class TickManager : Node
 {
@@ -28,6 +30,12 @@ public partial class TickManager : Node
     // Track if client has synchronized initial tick
     private bool _clientSynchronized = false;
 
+    // Control whether ticks are running (only during Playing state)
+    private bool _isRunning = false;
+
+    // Reference to GameStateManager (when in GameSession)
+    private GameStateManager _gameStateManager;
+
     public override void _Ready()
     {
         // Check if we have a synchronizer (when in GameSession)
@@ -50,6 +58,19 @@ public partial class TickManager : Node
         {
             // We're in GameSession - synchronizer already exists in scene
             GD.Print("TickManager: Initialized in GameSession with scene synchronizer");
+
+            // Connect to GameStateManager to control tick lifecycle
+            _gameStateManager = GetNodeOrNull<GameStateManager>("../GameStateManager");
+            if (_gameStateManager != null)
+            {
+                _gameStateManager.StateChanged += OnGameStateChanged;
+                GD.Print("TickManager: Connected to GameStateManager");
+            }
+            else
+            {
+                GD.PrintErr("TickManager: GameStateManager not found - ticks will run continuously");
+                _isRunning = true; // Fallback: run always
+            }
         }
 
         if (NetworkUtils.IsServer())
@@ -63,8 +84,37 @@ public partial class TickManager : Node
         }
     }
 
+    /// <summary>
+    /// Handle game state changes - start/stop ticks accordingly.
+    /// </summary>
+    private void OnGameStateChanged(long stateIdx)
+    {
+        GameState state = (GameState)stateIdx;
+
+        if (state == GameState.Playing)
+        {
+            // Reset and activate ticks when game starts
+            ServerTick = 0;
+            ClientTick = 0;
+            _clientSynchronized = false;
+            _isRunning = true;
+
+            GD.Print($"TickManager: Playing state - ticks activated and reset to 0 (IsServer={NetworkUtils.IsServer()})");
+        }
+        else
+        {
+            // Pause ticks in WaitingToStart, Paused, or GameOver
+            _isRunning = false;
+            GD.Print($"TickManager: State={state} - ticks paused");
+        }
+    }
+
     public override void _PhysicsProcess(double delta)
     {
+        // Only advance ticks if running (Playing state)
+        if (!_isRunning)
+            return;
+
         // Server increments authoritative tick
         if (NetworkUtils.IsServer())
         {
