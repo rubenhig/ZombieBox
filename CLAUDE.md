@@ -76,7 +76,9 @@ COMPONENTS (scripts/Components/)
     ↓
 INFRASTRUCTURE (scripts/Core/)
     NetworkSystem - Connection management (autoload)
-    NetworkUtils - Helper utilities
+    GameStateManager - Game state (WaitingToStart/Playing/GameOver, part of GameSession)
+    TickManager - Simulation clock (part of GameSession, controlled by GameStateManager)
+    NetworkUtils, MovementUtils - Helper utilities
 ```
 
 ### Communication Rules
@@ -96,6 +98,12 @@ INFRASTRUCTURE (scripts/Core/)
 - **60 ticks/second** (16.67ms per tick)
 - Physics tick rate configured in project.godot: `physics/common/physics_ticks_per_second=60`
 - Server advances simulation in discrete ticks for determinism
+- **TickManager lifecycle**: Part of GameSession/Managers, not autoload
+  - Listens to GameStateManager.StateChanged
+  - WaitingToStart: Ticks paused at 0
+  - Playing: Ticks active, reset to 0 when game starts
+  - GameOver: Ticks paused
+  - This ensures server and clients start synchronized at tick=0
 
 ### Data Replication
 
@@ -124,7 +132,11 @@ Player Entity:
 **Game Session:** `scenes/systems/GameSession.tscn`
 ```
 GameSession
-├── Systems/           # SessionSystem, SpawnSystem, WaveSystem as children
+├── Managers/          # State and sync managers
+│   ├── GameStateManager (controls WaitingToStart/Playing/GameOver)
+│   ├── TickManager (simulation clock, active only in Playing)
+│   ├── WaveSystem, SpawnSystem
+│   └── MultiplayerSpawners
 ├── World/
 │   ├── Level/         # TileMap, navigation mesh
 │   └── Entities/      # Players/enemies spawned here (MultiplayerSpawner target)
@@ -137,11 +149,15 @@ GameSession
 |------|---------|
 | scripts/Core/Master.cs | Bootstrap: CLI parsing, scene switching |
 | scripts/Core/NetworkSystem.cs | Autoload singleton: server/client initialization |
-| scripts/Systems/SessionSystem.cs | Game state machine: Lobby → Playing → GameOver |
+| scripts/Core/GameStateManager.cs | Game state controller (part of GameSession) |
+| scripts/Core/TickManager.cs | Simulation clock (part of GameSession, lifecycle-controlled) |
+| scripts/Systems/SessionSystem.cs | Session orchestrator: player management, state transitions |
 | scripts/Systems/SpawnSystem.cs | Entity instantiation (server-authoritative) |
-| scripts/Entities/Player.cs | Player entity: health, state, signals |
+| scripts/Entities/Player.cs | Player entity: health, state, signals, component injection |
 | scripts/Components/PlayerInput.cs | Input capture (client owner only) |
 | scripts/Components/PlayerController.cs | Physics application (server only) |
+| scripts/Netcode/ClientPredictor.cs | Client-side prediction with reconciliation |
+| scripts/Core/MovementUtils.cs | Shared movement physics (server + client) |
 
 ## Physics Layers
 

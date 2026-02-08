@@ -200,7 +200,7 @@ Cada nodo/clase tiene **una única razón para cambiar**.
 │                                                                 │
 │  INFRAESTRUCTURA (Utilidades)                                   │
 │  └── Helpers transversales. Sin estado de juego.                │
-│      Ejemplos: NetworkUtils, TickManager                        │
+│      Ejemplos: NetworkUtils, MovementUtils                      │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -226,6 +226,26 @@ Cada tick es atómico: mismo input → mismo resultado (determinismo)
 ```
 
 **Regla**: Toda acción se etiqueta con un número de tick. Esto permite reconciliación, lag compensation y reproducibilidad.
+
+##### Lifecycle del Tick
+
+El TickManager es parte de GameSession (no autoload) y su ciclo de vida está controlado por GameStateManager:
+
+```
+WaitingToStart (Lobby)  →  Ticks PAUSADOS (tick=0)
+       ↓
+Playing (Gameplay)      →  Ticks ACTIVOS (empiezan en tick=0)
+       ↓
+GameOver                →  Ticks PAUSADOS
+```
+
+**Ventajas**:
+- ✅ Servidor y cliente empiezan sincronizados en tick=0 al iniciar partida
+- ✅ No hay diferencias masivas de ticks al conectar
+- ✅ Cada partida es independiente (tick se resetea)
+- ✅ Ticks solo avanzan durante gameplay activo
+
+**Implementación**: TickManager escucha `GameStateManager.StateChanged` y activa/pausa ticks según el estado.
 
 ---
 
@@ -342,8 +362,9 @@ Ver [Sección 0.3 - Arquitectura del Sistema Completo](#03-arquitectura-del-sist
 | **SessionSystem** | Flujo de la partida: Lobby → Playing → GameOver | Servidor |
 | **SpawnSystem** | Crear y destruir entidades (players, enemies) | Servidor |
 | **WaveSystem** | Progresión de oleadas, spawn de enemigos | Servidor |
-| **NetworkSystem** | Gestión de conexiones, peers | Servidor |
-| **TickManager** | Sincronización temporal, heartbeat | Servidor (broadcast) |
+| **NetworkSystem** | Gestión de conexiones, peers (autoload) | Servidor |
+| **GameStateManager** | Estado de la partida actual (WaitingToStart/Playing/GameOver) | Servidor (replicado) |
+| **TickManager** | Reloj de simulación (solo activo durante Playing) | Servidor (replicado) |
 
 **Regla**: Los sistemas son nodos en el Scene Tree. Se comunican entre sí por referencia directa. Escuchan a las entidades por signals.
 
@@ -388,10 +409,11 @@ Ver [Sección 0.3 - Arquitectura del Sistema Completo](#03-arquitectura-del-sist
 ```
 ZombieBox/
 ├── scripts/
-│   ├── Core/           # Bootstrap, TickManager, NetworkUtils
+│   ├── Core/           # Bootstrap (Master.cs), GameStateManager, TickManager, NetworkUtils
 │   ├── Systems/        # SessionSystem, SpawnSystem, WaveSystem
 │   ├── Entities/       # Player, Enemy, Bullet
-│   ├── Components/     # PlayerInput, RemoteInterpolator
+│   ├── Components/     # PlayerInput, PlayerController, PlayerVisuals
+│   ├── Netcode/        # ClientPredictor, RemoteInterpolator, CircularBuffer
 │   └── Weapons/        # IWeapon, implementaciones
 │
 ├── scenes/
@@ -410,8 +432,13 @@ ZombieBox/
 ### 2.5 Escena de Juego
 
 ```
-GameSession
-├── Systems/           # Todos los sistemas como hijos
+GameSession (Node)
+├── Managers/          # Gestores de estado y sincronización
+│   ├── GameStateManager (controla WaitingToStart/Playing/GameOver)
+│   ├── TickManager (reloj de simulación, solo activo en Playing)
+│   ├── WaveSystem
+│   ├── SpawnSystem
+│   └── MultiplayerSpawners (Player, Enemy, Bullet)
 ├── World/
 │   ├── Level/         # Mapa actual (TileMap, Navigation)
 │   └── Entities/      # Players y Enemies spawneados aquí
