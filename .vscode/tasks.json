@@ -13,6 +13,26 @@
 				"isDefault": true
 			},
 			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "docker-server-up",
+			"type": "shell",
+			"command": "docker-compose -f docker/docker-compose.yml up -d",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "docker-server-down",
+			"type": "shell",
+			"command": "docker-compose -f docker/docker-compose.yml down",
+			"problemMatcher": []
+		},
+		{
+			"label": "docker-server-logs",
+			"type": "shell",
+			"command": "docker-compose -f docker/docker-compose.yml logs -f server",
+			"isBackground": true,
+			"problemMatcher": []
 		}
 	]
 }

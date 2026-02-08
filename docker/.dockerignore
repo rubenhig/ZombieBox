@@ -1,0 +1,10 @@
+.git
+.godot
+.vscode
+*.import
+.mono
+bin
+obj
+*.md
+Dockerfile
+.dockerignore

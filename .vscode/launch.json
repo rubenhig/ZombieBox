@@ -88,6 +88,11 @@
         {
             "name": "Multiplayer Simulation (Server + 2 Clients)",
             "configurations": ["Launch Dedicated Server", "Launch Client", "Launch Client 2"]
+        },
+        {
+            "name": "Multiplayer Simulation (Docker Server + 2 Clients)",
+            "configurations": ["Launch Client", "Launch Client 2"],
+            "preLaunchTask": "docker-server-up"
         }
     ]
 }

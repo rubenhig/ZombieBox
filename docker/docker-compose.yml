@@ -1,0 +1,16 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+    image: zombiebox-server
+    platform: linux/amd64
+    container_name: zombiebox-server
+    volumes:
+      - ..:/app
+    ports:
+      - "7777:7777/udp"
+    stdin_open: true
+    tty: true
