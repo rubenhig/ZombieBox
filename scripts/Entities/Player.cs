@@ -92,93 +92,180 @@ public partial class Player : CharacterBody2D, IDamageable
     [Export]
     public uint LastProcessedTick { get; set; } = 0;
 
+    // ========================================
+    // CHILD NODE REFERENCES
+    // ========================================
+    // Using [Export] for editor-assigned references (robust against scene restructuring)
+
+    /// <summary>
+    /// PlayerInput component - handles input capture and synchronization.
+    /// Assigned via editor (drag & drop in Inspector).
+    /// </summary>
+    [Export]
     private PlayerInput _input;
+
+    /// <summary>
+    /// ClientPredictor component - handles client-side prediction (optional, only on clients).
+    /// Assigned via editor (drag & drop in Inspector).
+    /// Can be null if not present in scene.
+    /// </summary>
+    [Export]
+    private Node _clientPredictorNode;
+
+    // Cached interface reference for type-safe initialization
+    private ITickSystemUser _clientPredictor;
+
+    private bool _initialized = false;
 
     public override void _EnterTree()
     {
-        // 1. Player Body authority is always Server (1)
+        // Player Body authority is always Server (1)
         SetMultiplayerAuthority(1);
-
-        // 2. Player Input authority depends on the node name (which is the Peer ID)
-        // Note: GetNode might fail if children are not ready yet in EnterTree? 
-        // In Godot 4, children EnterTree happens after parent EnterTree but before Ready.
-        // Let's use GetNodeOrNull to be safe, though packed scenes usually have children.
-        var input = GetNodeOrNull<PlayerInput>("PlayerInput");
-        if (input != null && int.TryParse(Name, out int authorityId))
-        {
-            input.SetMultiplayerAuthority(authorityId);
-            if (authorityId == Multiplayer.GetUniqueId())
-            {
-                GD.Print($"Player {_EnterTree}: Authority assigned to local client {authorityId}");
-            }
-        }
     }
 
     public override void _Ready()
     {
-        _input = GetNode<PlayerInput>("PlayerInput");
+        // ========================================
+        // VALIDATION: Editor-Assigned References
+        // ========================================
+        // Fail-fast if critical [Export] references are missing
 
-        // Defer dependency injection to next frame to ensure scene tree is fully ready
-        CallDeferred(MethodName.InjectDependencies);
+        bool validationFailed = false;
+
+        if (_input == null)
+        {
+            GD.PrintErr("╔════════════════════════════════════════════════════════════════╗");
+            GD.PrintErr("║ CRITICAL ERROR: Player Setup Incomplete                       ║");
+            GD.PrintErr("╠════════════════════════════════════════════════════════════════╣");
+            GD.PrintErr($"║ Player Node: {Name}                                            ");
+            GD.PrintErr("║ Missing: _input (PlayerInput)                                  ║");
+            GD.PrintErr("║                                                                ║");
+            GD.PrintErr("║ FIX:                                                           ║");
+            GD.PrintErr("║ 1. Open: scenes/entities/player/player.tscn                    ║");
+            GD.PrintErr("║ 2. Select root Player node                                     ║");
+            GD.PrintErr("║ 3. In Inspector, find 'Input' property                         ║");
+            GD.PrintErr("║ 4. Drag 'PlayerInput' child node to that property              ║");
+            GD.PrintErr("║ 5. Save scene (Ctrl+S)                                         ║");
+            GD.PrintErr("╚════════════════════════════════════════════════════════════════╝");
+            validationFailed = true;
+        }
+
+        if (validationFailed)
+        {
+            // Disable this player to prevent cascading errors
+            SetPhysicsProcess(false);
+            SetProcess(false);
+            return;
+        }
+
+        // ========================================
+        // SUCCESS: All Critical References Valid
+        // ========================================
+        GD.Print($"✓ Player {Name}: Editor references validated successfully");
+
+        // Cache interface reference for ClientPredictor (optional, only on clients)
+        if (_clientPredictorNode is ITickSystemUser predictor)
+        {
+            _clientPredictor = predictor;
+            GD.Print($"✓ Player {Name}: ClientPredictor found and cached");
+        }
+        else if (_clientPredictorNode != null)
+        {
+            GD.PrintErr($"⚠ Player {Name}: ClientPredictor node assigned but doesn't implement ITickSystemUser!");
+        }
+
+        // Set authority for PlayerInput based on player ID (peer ID encoded in Name)
+        // This is safe because children are guaranteed ready in _Ready()
+        if (int.TryParse(Name, out int authorityId))
+        {
+            _input.SetMultiplayerAuthority(authorityId);
+            if (authorityId == Multiplayer.GetUniqueId())
+            {
+                GD.Print($"✓ Player {Name}: Authority assigned to local client {authorityId}");
+            }
+        }
+
+        // Safety check: Warn if Initialize() was never called
+        GetTree().CreateTimer(0.5).Timeout += () =>
+        {
+            if (!_initialized)
+            {
+                GD.PrintErr("╔════════════════════════════════════════════════════════════════╗");
+                GD.PrintErr("║ WARNING: Dependencies Not Injected                            ║");
+                GD.PrintErr("╠════════════════════════════════════════════════════════════════╣");
+                GD.PrintErr($"║ Player {Name}: Initialize() was never called!                  ");
+                GD.PrintErr("║                                                                ║");
+                GD.PrintErr("║ This should be called by SpawnSystem or SessionSystem.        ║");
+                GD.PrintErr("║ Check that dependency injection is working correctly.         ║");
+                GD.PrintErr("╚════════════════════════════════════════════════════════════════╝");
+            }
+        };
 
         // UI state will be refreshed when HUD connects via RefreshUI()
     }
 
-    private void InjectDependencies()
+    /// <summary>
+    /// Inject dependencies from external orchestrator (SpawnSystem or SessionSystem).
+    /// MUST be called BEFORE adding to scene tree (before AddChild).
+    ///
+    /// Uses [Export] references (editor-assigned) instead of GetNode strings.
+    /// Uses ITickSystemUser interface for type-safe initialization.
+    ///
+    /// Benefits:
+    /// - Robust against scene restructuring (no hardcoded paths)
+    /// - Compile-time type safety (no reflection)
+    /// - Editor validation (missing references visible in Inspector)
+    /// </summary>
+    public void Initialize(TickManager tickManager)
     {
-        // Find TickManager dynamically (more robust than hardcoded path)
-        TickManager tickManager = null;
-
-        // Strategy 1: Try via GetTree().Root
-        var root = GetTree().Root;
-        var gameSession = root.GetNodeOrNull<Node>("GameSession");
-        if (gameSession != null)
+        // Guard: Prevent double initialization
+        if (_initialized)
         {
-            tickManager = gameSession.GetNodeOrNull<TickManager>("Managers/TickManager");
+            GD.PrintErr($"⚠ Player {Name}: Initialize() called twice! Ignoring.");
+            return;
         }
 
-        // Strategy 2: Navigate up from player position
+        // Guard: Validate parameters
         if (tickManager == null)
         {
-            // Player is in: GameSession/World/Entities/Players/[PlayerNode]
-            // Go up to GameSession and down to Managers/TickManager
-            var parent = GetParent(); // Players
-            if (parent != null)
-            {
-                parent = parent.GetParent(); // Entities
-                if (parent != null)
-                {
-                    parent = parent.GetParent(); // World
-                    if (parent != null)
-                    {
-                        gameSession = parent.GetParent(); // GameSession
-                        if (gameSession != null)
-                        {
-                            tickManager = gameSession.GetNodeOrNull<TickManager>("Managers/TickManager");
-                        }
-                    }
-                }
-            }
+            GD.PrintErr($"✗ Player {Name}: Initialize() called with null TickManager!");
+            return;
         }
 
-        if (tickManager != null)
+        int successCount = 0;
+        int totalComponents = 0;
+
+        // Inject into PlayerInput (required component)
+        totalComponents++;
+        if (_input != null)
         {
-            // Inject into PlayerInput
             _input.Initialize(tickManager);
-
-            // Inject into ClientPredictor (if exists)
-            var clientPredictor = GetNodeOrNull<Node>("ClientPredictor");
-            if (clientPredictor != null && clientPredictor.HasMethod("Initialize"))
-            {
-                clientPredictor.Call("Initialize", tickManager);
-            }
-
-            GD.Print($"Player {Name}: Dependencies injected successfully");
+            successCount++;
+            GD.Print($"  ✓ PlayerInput injected for {Name}");
         }
         else
         {
-            GD.PrintErr($"Player {Name}: CRITICAL - TickManager not found! Tree structure may be incorrect.");
+            GD.PrintErr($"  ✗ PlayerInput is null for {Name} (not assigned in editor)");
         }
+
+        // Inject into ClientPredictor (optional - only on clients)
+        if (_clientPredictorNode != null)
+        {
+            totalComponents++;
+            if (_clientPredictorNode is ITickSystemUser predictor)
+            {
+                predictor.Initialize(tickManager);
+                successCount++;
+                GD.Print($"  ✓ ClientPredictor injected for {Name}");
+            }
+            else
+            {
+                GD.PrintErr($"  ✗ ClientPredictor node doesn't implement ITickSystemUser for {Name}");
+            }
+        }
+
+        _initialized = true;
+        GD.Print($"✓ Player {Name}: Dependencies injected ({successCount}/{totalComponents} components)");
     }
 
     /// <summary>

@@ -882,6 +882,102 @@ Sistemas escuchan Died → Reaccionan
 
 ---
 
+### 5.7 Patrón de Inyección de Dependencias
+
+#### 5.7.1 Problema
+
+Los componentes (PlayerInput, ClientPredictor) requieren referencia a TickManager para operar. Las entidades NO deben buscar sus propias dependencias (viola Inversión de Control).
+
+#### 5.7.2 Solución: Estrategia Híbrida
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                   INYECCIÓN DE DEPENDENCIAS                     │
+└────────────────────────────────────────────────────────────────┘
+
+SERVIDOR (SpawnSystem):                  CLIENTE (SessionSystem):
+  1. Instantiate Player                    1. Detecta Player via ChildEnteredTree
+  2. Initialize(tickManager) ◄─────────┐   2. CallDeferred → Initialize(tickManager)
+  3. AddChild(player) ──────────┐      │   3. Player ya en árbol (replicado)
+                                │      │
+                                ▼      │
+                         Player.Initialize(TickManager)
+                                │
+                                ├──► PlayerInput.Initialize()
+                                └──► ClientPredictor.Initialize()
+```
+
+#### 5.7.3 Implementación
+
+**Interfaz ITickSystemUser** (type-safe):
+```csharp
+public interface ITickSystemUser {
+    void Initialize(TickManager tickManager);
+}
+```
+
+**Player.cs** (entidad pasiva):
+```csharp
+[Export] private PlayerInput _input;              // Editor-assigned
+[Export] private Node _clientPredictorNode;        // Editor-assigned
+
+public void Initialize(TickManager tickManager) {
+    _input.Initialize(tickManager);
+    if (_clientPredictorNode is ITickSystemUser predictor) {
+        predictor.Initialize(tickManager);  // Sin reflexión
+    }
+}
+```
+
+**SpawnSystem.cs** (servidor):
+```csharp
+Player player = PlayerScene.Instantiate<Player>();
+player.Initialize(tickManager);  // ANTES de AddChild
+_playersContainer.AddChild(player);
+```
+
+**SessionSystem.cs** (cliente):
+```csharp
+_playersContainer.ChildEnteredTree += OnPlayerNodeAdded;
+
+void OnPlayerNodeAdded(Node node) {
+    if (node is Player player) {
+        // Player llegó por replicación, inyectar ahora
+        CallDeferred(nameof(InjectPlayerDependencies), player, tickManager);
+    }
+}
+```
+
+#### 5.7.4 Referencias Editor vs GetNode
+
+| Método | Robustez | Ejemplo |
+|--------|----------|---------|
+| ❌ GetNode string | Se rompe al reorganizar | `GetNode<PlayerInput>("PlayerInput")` |
+| ✅ [Export] editor | Sobrevive cambios | `[Export] private PlayerInput _input;` |
+
+**Ventajas [Export]**:
+- Persistencia: Arrastra en Inspector una vez, funciona para siempre
+- Refactoring-safe: Mover/renombrar nodos no rompe código
+- Validación visual: Referencias faltantes visibles en editor
+
+#### 5.7.5 Ciclo de Vida Godot
+
+```
+_EnterTree (Padre → Hijo)
+    ├── Solo propiedades propias (SetMultiplayerAuthority)
+    ├── Hijos pueden NO estar listos aún
+    └── GetNode en children puede fallar
+
+_Ready (Hijo → Padre)
+    ├── Hijos GARANTIZADOS como listos
+    ├── Seguro usar GetNode/[Export]
+    └── Momento ideal para configurar autoridades de hijos
+```
+
+**Regla**: Nunca uses `GetNode` en `_EnterTree` para acceder hijos.
+
+---
+
 ## 6. Roadmap de Fases
 
 ### 6.1 Visión General

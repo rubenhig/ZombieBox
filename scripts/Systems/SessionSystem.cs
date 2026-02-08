@@ -244,6 +244,20 @@ public partial class SessionSystem : Node
         {
             GD.Print($"SessionSystem: Player detected in scene: {player.Name}");
 
+            // CRITICAL: Inject dependencies if not already done
+            // Server: SpawnSystem already injected before AddChild
+            // Client: Player arrived via replication, needs injection NOW
+            var tickManager = GetNodeOrNull<TickManager>("Managers/TickManager");
+            if (tickManager != null)
+            {
+                // CallDeferred to ensure player's _Ready() has completed
+                CallDeferred(MethodName.InjectPlayerDependencies, player, tickManager);
+            }
+            else
+            {
+                GD.PrintErr($"SessionSystem: TickManager not found! Cannot inject into {player.Name}");
+            }
+
             _connectedPlayers++;
             _playersAlive++;
 
@@ -271,6 +285,14 @@ public partial class SessionSystem : Node
                     SpawnSystem.OnPlayerWeaponFired(player, position, direction, shooterName);
             }
         }
+    }
+
+    /// <summary>
+    /// Deferred injection to ensure Player._Ready() has completed.
+    /// </summary>
+    private void InjectPlayerDependencies(Player player, TickManager tickManager)
+    {
+        player.Initialize(tickManager);
     }
 
     private void OnPlayerDied()

@@ -19,7 +19,7 @@ using ZombieBox.Netcode;
 /// 3. PredictMovement() - Apply physics immediately
 /// 4. StorePredictedState() - Save predicted state
 /// </summary>
-public partial class ClientPredictor : Node
+public partial class ClientPredictor : Node, ITickSystemUser
 {
 	// ========================================
 	// CONFIGURATION

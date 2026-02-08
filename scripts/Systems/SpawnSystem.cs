@@ -66,11 +66,18 @@ public partial class SpawnSystem : Node
 
         GD.Print($"SpawnSystem: Spawning Player for Peer {peerId}");
 
+        // 1. Instantiate player
         Player player = PlayerScene.Instantiate<Player>();
         player.Name = peerId.ToString();
+
+        // 2. Inject dependencies BEFORE adding to tree (server-side)
+        var tickManager = GetNode<TickManager>("../TickManager");
+        player.Initialize(tickManager);
+
+        // 3. Add to scene tree (triggers replication to clients via MultiplayerSpawner)
         _playersContainer.AddChild(player, true);
 
-        // Configure MultiplayerSynchronizer authorities
+        // 4. Configure MultiplayerSynchronizer authorities
         // ServerSynchronizer: Server has authority (syncs state to all clients)
         var serverSync = player.GetNodeOrNull<MultiplayerSynchronizer>("ServerSynchronizer");
         if (serverSync != null)

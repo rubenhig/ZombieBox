@@ -1,24 +1,25 @@
-[gd_scene load_steps=6 format=3 uid="uid://d0j2f7wylnxqe"]
+[gd_scene load_steps=11 format=3 uid="uid://d0j2f7wylnxqe"]
 
-[ext_resource type="Script" path="res://scripts/Entities/Player.cs" id="1_gx2j3"]
-[ext_resource type="Texture2D" uid="uid://b11ge5rtwrk65" path="res://icon.svg" id="2_c2vsc"]
-[ext_resource type="Script" path="res://scripts/Components/PlayerInput.cs" id="3_input"]
-[ext_resource type="Script" path="res://scripts/Components/PlayerController.cs" id="3_server_logic"]
+[ext_resource type="Script" uid="uid://cxesdjnn247ut" path="res://scripts/Entities/Player.cs" id="1_gx2j3"]
+[ext_resource type="Script" uid="uid://cyb7hxdrvv15n" path="res://scripts/Components/PlayerInput.cs" id="3_input"]
+[ext_resource type="Script" uid="uid://dgr56fimaxwcu" path="res://scripts/Components/PlayerController.cs" id="3_server_logic"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/entities/player/player_state_server_to_all.tres" id="4_sync_server"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/entities/player/player_input_client_to_server.tres" id="5_sync_input"]
-[ext_resource type="Script" path="res://scripts/Components/PlayerVisuals.cs" id="7_visuals"]
-[ext_resource type="Script" path="res://scripts/Netcode/ClientPredictor.cs" id="7_predictor"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_gun.png" id="8_tex_pistol"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/survivor1_machine.png" id="9_tex_machine"]
+[ext_resource type="Script" uid="uid://c3yjpahfpkvf8" path="res://scripts/Netcode/ClientPredictor.cs" id="7_predictor"]
+[ext_resource type="Script" uid="uid://di2lj4eh0co42" path="res://scripts/Components/PlayerVisuals.cs" id="7_visuals"]
+[ext_resource type="Texture2D" uid="uid://dxmftuow25lfp" path="res://assets/sprites/characters/player/survivor1_gun.png" id="8_tex_pistol"]
+[ext_resource type="Texture2D" uid="uid://bjfd8wsffb2qd" path="res://assets/sprites/characters/player/survivor1_machine.png" id="9_tex_machine"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_zprhn"]
 radius = 38.0
 height = 96.0
 
-[node name="Player" type="CharacterBody2D" groups=["players"]]
+[node name="Player" type="CharacterBody2D" node_paths=PackedStringArray("_input", "_clientPredictorNode") groups=["players"]]
 collision_layer = 2
 collision_mask = 5
 script = ExtResource("1_gx2j3")
+_input = NodePath("PlayerInput")
+_clientPredictorNode = NodePath("ClientPredictor")
 
 [node name="ServerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = ExtResource("4_sync_server")

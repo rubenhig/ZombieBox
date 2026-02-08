@@ -205,14 +205,113 @@ if (IsMultiplayerAuthority())
 }
 ```
 
+## Design Patterns & Lessons Learned
+
+### Dependency Injection Pattern
+
+**Problem**: Components (PlayerInput, ClientPredictor) need TickManager reference, but shouldn't search for it themselves (violates IoC).
+
+**Solution**: Hybrid Strategy
+- **Server**: SpawnSystem injects dependencies BEFORE AddChild
+- **Client**: SessionSystem observes ChildEnteredTree and injects via CallDeferred
+
+```csharp
+// Entity (passive - receives dependencies)
+public void Initialize(TickManager tickManager) {
+    _input.Initialize(tickManager);
+    if (_clientPredictor is ITickSystemUser predictor) {
+        predictor.Initialize(tickManager);  // Type-safe interface
+    }
+}
+
+// Server (SpawnSystem)
+Player player = PlayerScene.Instantiate<Player>();
+player.Initialize(tickManager);  // BEFORE AddChild
+_playersContainer.AddChild(player);
+
+// Client (SessionSystem)
+_playersContainer.ChildEnteredTree += OnPlayerNodeAdded;
+void OnPlayerNodeAdded(Node node) {
+    if (node is Player player) {
+        CallDeferred(nameof(InjectDependencies), player, tickManager);
+    }
+}
+```
+
+### [Export] vs GetNode Strings
+
+**Anti-pattern**: `GetNode<PlayerInput>("PlayerInput")` - Breaks if scene restructured
+
+**Best practice**: `[Export] private PlayerInput _input;` - Editor-assigned, robust
+
+**Benefits**:
+- Survives scene reorganization (move/rename nodes)
+- Editor validation (missing refs visible in Inspector)
+- No magic strings
+
+### Interfaces vs Reflection
+
+**Anti-pattern**: `node.Call("Initialize", param)` - Slow, no compile-time safety
+
+**Best practice**: `if (node is ITickSystemUser user) user.Initialize(param);`
+
+**Benefits**:
+- Compile-time type checking
+- Faster (no reflection)
+- Refactoring-safe
+
+### Godot Lifecycle: _EnterTree vs _Ready
+
+**Rule**: Use _EnterTree only for setting own properties (authority, etc.)
+
+**Rationale**: Children may not be ready during _EnterTree (parent executes first)
+
+```csharp
+// ✓ CORRECT
+public override void _EnterTree() {
+    SetMultiplayerAuthority(1);  // Own property only
+}
+
+public override void _Ready() {
+    _input = GetNode<PlayerInput>("PlayerInput");  // Children ready now
+    _input.SetMultiplayerAuthority(peerId);
+}
+
+// ✗ WRONG
+public override void _EnterTree() {
+    var input = GetNode<PlayerInput>("PlayerInput");  // May be null!
+}
+```
+
+### RPC CallLocal Pattern
+
+**Pattern**: `[Rpc(CallLocal = true)]` with server guard
+
+```csharp
+[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true)]
+private void RequestFire() {
+    if (!NetworkUtils.IsServer()) return;  // Guard prevents client execution
+    DoFire();
+}
+```
+
+**Purpose**: Allows Listen Server (host that plays) to execute locally while clients only send RPC
+
+**Why guard is needed**: Prevents clients from executing server-only logic when CallLocal executes
+
 ## Current Phase
 
-**Phase 1: Base Functional**
+**Phase 1: Base Functional** ✅ Complete
 - Dedicated server + multiple clients working
 - Basic player movement and shooting
 - Enemy spawning and waves
 - Tick system operational
-- No client prediction/interpolation yet (Phase 2)
+- Dependency injection architecture solid
+
+**Phase 2: Client-Side Prediction** 🔄 In Progress
+- ClientPredictor component implemented
+- MovementUtils shared logic
+- Testing reconciliation needed
 
 ## Common Pitfalls to Avoid
 

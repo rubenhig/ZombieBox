@@ -6,7 +6,7 @@ using System;
 /// Only runs on the client that owns this player.
 /// Synchronized via MultiplayerSynchronizer to the server.
 /// </summary>
-public partial class PlayerInput : Node
+public partial class PlayerInput : Node, ITickSystemUser
 {
     // Synchronized properties - exported for MultiplayerSynchronizer
     [Export]
