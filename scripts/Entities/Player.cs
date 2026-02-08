@@ -126,8 +126,40 @@ public partial class Player : CharacterBody2D, IDamageable
 
     private void InjectDependencies()
     {
-        // Get TickManager from GameSession (now tree is fully ready)
-        var tickManager = GetNodeOrNull<TickManager>("/root/GameSession/Managers/TickManager");
+        // Find TickManager dynamically (more robust than hardcoded path)
+        TickManager tickManager = null;
+
+        // Strategy 1: Try via GetTree().Root
+        var root = GetTree().Root;
+        var gameSession = root.GetNodeOrNull<Node>("GameSession");
+        if (gameSession != null)
+        {
+            tickManager = gameSession.GetNodeOrNull<TickManager>("Managers/TickManager");
+        }
+
+        // Strategy 2: Navigate up from player position
+        if (tickManager == null)
+        {
+            // Player is in: GameSession/World/Entities/Players/[PlayerNode]
+            // Go up to GameSession and down to Managers/TickManager
+            var parent = GetParent(); // Players
+            if (parent != null)
+            {
+                parent = parent.GetParent(); // Entities
+                if (parent != null)
+                {
+                    parent = parent.GetParent(); // World
+                    if (parent != null)
+                    {
+                        gameSession = parent.GetParent(); // GameSession
+                        if (gameSession != null)
+                        {
+                            tickManager = gameSession.GetNodeOrNull<TickManager>("Managers/TickManager");
+                        }
+                    }
+                }
+            }
+        }
 
         if (tickManager != null)
         {
@@ -145,7 +177,7 @@ public partial class Player : CharacterBody2D, IDamageable
         }
         else
         {
-            GD.PrintErr($"Player {Name}: CRITICAL - TickManager not found in GameSession!");
+            GD.PrintErr($"Player {Name}: CRITICAL - TickManager not found! Tree structure may be incorrect.");
         }
     }
 
