@@ -117,6 +117,27 @@ public partial class Player : CharacterBody2D, IDamageable
     public override void _Ready()
     {
         _input = GetNode<PlayerInput>("PlayerInput");
+
+        // Inject TickManager dependency into components
+        var tickManager = GetNodeOrNull<TickManager>("/root/GameSession/Managers/TickManager");
+        if (tickManager != null)
+        {
+            // Inject into PlayerInput
+            _input.Initialize(tickManager);
+
+            // Inject into ClientPredictor (if exists)
+            var clientPredictor = GetNodeOrNull<Node>("ClientPredictor");
+            if (clientPredictor != null && clientPredictor.HasMethod("Initialize"))
+            {
+                clientPredictor.Call("Initialize", tickManager);
+            }
+        }
+        else
+        {
+            // Fallback: components will search for TickManager themselves
+            GD.PrintErr("Player: TickManager not found in GameSession, components will use fallback");
+        }
+
         // UI state will be refreshed when HUD connects via RefreshUI()
     }
 
