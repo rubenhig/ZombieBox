@@ -30,6 +30,28 @@ public partial class TickManager : Node
 
     public override void _Ready()
     {
+        // Check if we have a synchronizer (when in GameSession)
+        // or need to create one (when as autoload)
+        var synchronizer = GetNodeOrNull<MultiplayerSynchronizer>("TickSynchronizer");
+
+        if (synchronizer == null)
+        {
+            // We're running as autoload - create synchronizer dynamically
+            synchronizer = new MultiplayerSynchronizer();
+            AddChild(synchronizer);
+
+            // Load and set replication config
+            var config = GD.Load<SceneReplicationConfig>("res://scenes/systems/tickmanager_sync.tres");
+            synchronizer.ReplicationConfig = config;
+
+            GD.Print("TickManager: Initialized as autoload with dynamic synchronizer");
+        }
+        else
+        {
+            // We're in GameSession - synchronizer already exists in scene
+            GD.Print("TickManager: Initialized in GameSession with scene synchronizer");
+        }
+
         if (NetworkUtils.IsServer())
         {
             GD.Print("TickManager: Server mode - will increment ServerTick at 60Hz");
@@ -39,16 +61,6 @@ public partial class TickManager : Node
         {
             GD.Print("TickManager: Client mode - receiving ServerTick from server");
         }
-
-        // Add MultiplayerSynchronizer for ServerTick replication
-        var synchronizer = new MultiplayerSynchronizer();
-        AddChild(synchronizer);
-
-        // Load and set replication config
-        var config = GD.Load<SceneReplicationConfig>("res://scenes/systems/tickmanager_sync.tres");
-        synchronizer.ReplicationConfig = config;
-
-        GD.Print("TickManager: Autoload initialized with synchronizer");
     }
 
     public override void _PhysicsProcess(double delta)

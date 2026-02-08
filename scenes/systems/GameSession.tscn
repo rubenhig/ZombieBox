@@ -5,6 +5,8 @@
 [ext_resource type="Script" path="res://scripts/Systems/SpawnSystem.cs" id="2_spawn"]
 [ext_resource type="Script" path="res://scripts/Core/GameStateManager.cs" id="3_gamestate"]
 [ext_resource type="SceneReplicationConfig" path="res://scenes/systems/gamestate_server_to_all.tres" id="3_gamestate_sync"]
+[ext_resource type="Script" path="res://scripts/Core/TickManager.cs" id="3_tickmanager"]
+[ext_resource type="SceneReplicationConfig" path="res://scenes/systems/tickmanager_sync.tres" id="3_tickmanager_sync"]
 [ext_resource type="PackedScene" uid="uid://c5w5xpg8iuxf1" path="res://scenes/ui/HUD.tscn" id="4_hud"]
 [ext_resource type="PackedScene" uid="uid://lobbyscreen" path="res://scenes/ui/LobbyScreen.tscn" id="5_lobby"]
 
@@ -25,6 +27,12 @@ script = ExtResource("3_gamestate")
 
 [node name="StateSynchronizer" type="MultiplayerSynchronizer" parent="Managers/GameStateManager"]
 replication_config = ExtResource("3_gamestate_sync")
+
+[node name="TickManager" type="Node" parent="Managers"]
+script = ExtResource("3_tickmanager")
+
+[node name="TickSynchronizer" type="MultiplayerSynchronizer" parent="Managers/TickManager"]
+replication_config = ExtResource("3_tickmanager_sync")
 
 [node name="WaveSystem" type="Node" parent="Managers"]
 script = ExtResource("2_wave")
