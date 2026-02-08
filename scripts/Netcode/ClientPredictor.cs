@@ -100,29 +100,10 @@ public partial class ClientPredictor : Node
 		_player = GetParent<Player>();
 		_input = _player.GetNode<PlayerInput>("PlayerInput");
 
-		// If not initialized via dependency injection, search for TickManager
+		// TickManager should be injected via Initialize() by Player._Ready()
 		if (_tickManager == null)
 		{
-			// Try 1: Autoload (legacy path)
-			_tickManager = GetNodeOrNull<TickManager>("/root/TickManager");
-
-			// Try 2: GameSession (new path)
-			if (_tickManager == null)
-			{
-				_tickManager = GetNodeOrNull<TickManager>("/root/GameSession/Managers/TickManager");
-			}
-
-			// Try 3: Relative search
-			if (_tickManager == null)
-			{
-				var gameSession = GetNodeOrNull<Node>("/root/GameSession");
-				_tickManager = gameSession?.GetNodeOrNull<TickManager>("Managers/TickManager");
-			}
-
-			if (_tickManager == null)
-			{
-				GD.PrintErr("ClientPredictor: Failed to find TickManager!");
-			}
+			GD.PrintErr("ClientPredictor: TickManager not injected! Ensure Player._Ready() calls Initialize()");
 		}
 
 		_inputHistory = new CircularBuffer<InputSnapshot>(HISTORY_SIZE);

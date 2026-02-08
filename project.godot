@@ -18,7 +18,6 @@ config/icon="res://icon.svg"
 [autoload]
 
 NetworkSystem="*res://scripts/Core/NetworkSystem.cs"
-TickManager="*res://scripts/Core/TickManager.cs"
 
 [display]
 

@@ -38,39 +38,17 @@ public partial class TickManager : Node
 
     public override void _Ready()
     {
-        // Check if we have a synchronizer (when in GameSession)
-        // or need to create one (when as autoload)
-        var synchronizer = GetNodeOrNull<MultiplayerSynchronizer>("TickSynchronizer");
-
-        if (synchronizer == null)
+        // Connect to GameStateManager to control tick lifecycle
+        _gameStateManager = GetNodeOrNull<GameStateManager>("../GameStateManager");
+        if (_gameStateManager != null)
         {
-            // We're running as autoload - create synchronizer dynamically
-            synchronizer = new MultiplayerSynchronizer();
-            AddChild(synchronizer);
-
-            // Load and set replication config
-            var config = GD.Load<SceneReplicationConfig>("res://scenes/systems/tickmanager_sync.tres");
-            synchronizer.ReplicationConfig = config;
-
-            GD.Print("TickManager: Initialized as autoload with dynamic synchronizer");
+            _gameStateManager.StateChanged += OnGameStateChanged;
+            GD.Print("TickManager: Connected to GameStateManager - ticks will start when Playing");
         }
         else
         {
-            // We're in GameSession - synchronizer already exists in scene
-            GD.Print("TickManager: Initialized in GameSession with scene synchronizer");
-
-            // Connect to GameStateManager to control tick lifecycle
-            _gameStateManager = GetNodeOrNull<GameStateManager>("../GameStateManager");
-            if (_gameStateManager != null)
-            {
-                _gameStateManager.StateChanged += OnGameStateChanged;
-                GD.Print("TickManager: Connected to GameStateManager");
-            }
-            else
-            {
-                GD.PrintErr("TickManager: GameStateManager not found - ticks will run continuously");
-                _isRunning = true; // Fallback: run always
-            }
+            GD.PrintErr("TickManager: GameStateManager not found - ticks will run continuously");
+            _isRunning = true; // Fallback: run always
         }
 
         if (NetworkUtils.IsServer())

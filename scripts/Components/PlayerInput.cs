@@ -44,29 +44,10 @@ public partial class PlayerInput : Node
     {
         _player = GetParent<Player>();
 
-        // If not initialized via dependency injection, search for TickManager
+        // TickManager should be injected via Initialize() by Player._Ready()
         if (_tickManager == null)
         {
-            // Try 1: Autoload (legacy path)
-            _tickManager = GetNodeOrNull<TickManager>("/root/TickManager");
-
-            // Try 2: GameSession (new path)
-            if (_tickManager == null)
-            {
-                _tickManager = GetNodeOrNull<TickManager>("/root/GameSession/Managers/TickManager");
-            }
-
-            // Try 3: Relative search (when in GameSession)
-            if (_tickManager == null)
-            {
-                var gameSession = GetNodeOrNull<Node>("/root/GameSession");
-                _tickManager = gameSession?.GetNodeOrNull<TickManager>("Managers/TickManager");
-            }
-
-            if (_tickManager == null)
-            {
-                GD.PrintErr("PlayerInput: Failed to find TickManager!");
-            }
+            GD.PrintErr("PlayerInput: TickManager not injected! Ensure Player._Ready() calls Initialize()");
         }
     }
 
