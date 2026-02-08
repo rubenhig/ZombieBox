@@ -82,10 +82,13 @@ public partial class ClientPredictor : Node
 
 	/// <summary>
 	/// Initialize with dependency injection (preferred).
+	/// Activates physics processing once TickManager is available.
 	/// </summary>
 	public void Initialize(TickManager tickManager)
 	{
 		_tickManager = tickManager;
+		SetPhysicsProcess(true); // Enable processing now that we have TickManager
+		GD.Print($"ClientPredictor: TickManager injected, physics processing enabled");
 	}
 
 	public override void _Ready()
@@ -100,16 +103,22 @@ public partial class ClientPredictor : Node
 		_player = GetParent<Player>();
 		_input = _player.GetNode<PlayerInput>("PlayerInput");
 
-		// TickManager should be injected via Initialize() by Player._Ready()
-		if (_tickManager == null)
-		{
-			GD.PrintErr("ClientPredictor: TickManager not injected! Ensure Player._Ready() calls Initialize()");
-		}
+		// Disable physics processing until TickManager is injected
+		SetPhysicsProcess(false);
 
 		_inputHistory = new CircularBuffer<InputSnapshot>(HISTORY_SIZE);
 		_stateHistory = new CircularBuffer<StateSnapshot>(HISTORY_SIZE);
 
-		GD.Print($"ClientPredictor: Initialized for player {_player.Name}");
+		// Safety check: warn if injection doesn't happen within reasonable time
+		GetTree().CreateTimer(1.0).Timeout += () =>
+		{
+			if (_tickManager == null)
+			{
+				GD.PrintErr($"ClientPredictor: FATAL - TickManager never injected for player {_player.Name}!");
+			}
+		};
+
+		GD.Print($"ClientPredictor: Initialized for player {_player.Name}, waiting for TickManager");
 	}
 
 	// ========================================

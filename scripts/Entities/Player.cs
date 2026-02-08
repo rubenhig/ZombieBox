@@ -118,8 +118,17 @@ public partial class Player : CharacterBody2D, IDamageable
     {
         _input = GetNode<PlayerInput>("PlayerInput");
 
-        // Inject TickManager dependency into components
+        // Defer dependency injection to next frame to ensure scene tree is fully ready
+        CallDeferred(MethodName.InjectDependencies);
+
+        // UI state will be refreshed when HUD connects via RefreshUI()
+    }
+
+    private void InjectDependencies()
+    {
+        // Get TickManager from GameSession (now tree is fully ready)
         var tickManager = GetNodeOrNull<TickManager>("/root/GameSession/Managers/TickManager");
+
         if (tickManager != null)
         {
             // Inject into PlayerInput
@@ -131,14 +140,13 @@ public partial class Player : CharacterBody2D, IDamageable
             {
                 clientPredictor.Call("Initialize", tickManager);
             }
+
+            GD.Print($"Player {Name}: Dependencies injected successfully");
         }
         else
         {
-            // Fallback: components will search for TickManager themselves
-            GD.PrintErr("Player: TickManager not found in GameSession, components will use fallback");
+            GD.PrintErr($"Player {Name}: CRITICAL - TickManager not found in GameSession!");
         }
-
-        // UI state will be refreshed when HUD connects via RefreshUI()
     }
 
     /// <summary>

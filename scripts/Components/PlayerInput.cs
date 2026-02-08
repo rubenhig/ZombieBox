@@ -34,21 +34,30 @@ public partial class PlayerInput : Node
 
     /// <summary>
     /// Initialize with dependency injection (preferred).
+    /// Activates physics processing once TickManager is available.
     /// </summary>
     public void Initialize(TickManager tickManager)
     {
         _tickManager = tickManager;
+        SetPhysicsProcess(true); // Enable processing now that we have TickManager
+        GD.Print($"PlayerInput: TickManager injected, physics processing enabled");
     }
 
     public override void _Ready()
     {
         _player = GetParent<Player>();
 
-        // TickManager should be injected via Initialize() by Player._Ready()
-        if (_tickManager == null)
+        // Disable physics processing until TickManager is injected
+        SetPhysicsProcess(false);
+
+        // Safety check: warn if injection doesn't happen within reasonable time
+        GetTree().CreateTimer(1.0).Timeout += () =>
         {
-            GD.PrintErr("PlayerInput: TickManager not injected! Ensure Player._Ready() calls Initialize()");
-        }
+            if (_tickManager == null)
+            {
+                GD.PrintErr($"PlayerInput: FATAL - TickManager never injected for player {_player.Name}!");
+            }
+        };
     }
 
     public override void _PhysicsProcess(double delta)
