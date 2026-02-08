@@ -80,6 +80,14 @@ public partial class ClientPredictor : Node
 	// INITIALIZATION
 	// ========================================
 
+	/// <summary>
+	/// Initialize with dependency injection (preferred).
+	/// </summary>
+	public void Initialize(TickManager tickManager)
+	{
+		_tickManager = tickManager;
+	}
+
 	public override void _Ready()
 	{
 		// Only run on clients (not server)
@@ -91,7 +99,31 @@ public partial class ClientPredictor : Node
 
 		_player = GetParent<Player>();
 		_input = _player.GetNode<PlayerInput>("PlayerInput");
-		_tickManager = GetNode<TickManager>("/root/TickManager");
+
+		// If not initialized via dependency injection, search for TickManager
+		if (_tickManager == null)
+		{
+			// Try 1: Autoload (legacy path)
+			_tickManager = GetNodeOrNull<TickManager>("/root/TickManager");
+
+			// Try 2: GameSession (new path)
+			if (_tickManager == null)
+			{
+				_tickManager = GetNodeOrNull<TickManager>("/root/GameSession/Managers/TickManager");
+			}
+
+			// Try 3: Relative search
+			if (_tickManager == null)
+			{
+				var gameSession = GetNodeOrNull<Node>("/root/GameSession");
+				_tickManager = gameSession?.GetNodeOrNull<TickManager>("Managers/TickManager");
+			}
+
+			if (_tickManager == null)
+			{
+				GD.PrintErr("ClientPredictor: Failed to find TickManager!");
+			}
+		}
 
 		_inputHistory = new CircularBuffer<InputSnapshot>(HISTORY_SIZE);
 		_stateHistory = new CircularBuffer<StateSnapshot>(HISTORY_SIZE);

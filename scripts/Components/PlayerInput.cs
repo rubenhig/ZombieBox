@@ -32,12 +32,42 @@ public partial class PlayerInput : Node
     private Player _player;
     private TickManager _tickManager;
 
+    /// <summary>
+    /// Initialize with dependency injection (preferred).
+    /// </summary>
+    public void Initialize(TickManager tickManager)
+    {
+        _tickManager = tickManager;
+    }
+
     public override void _Ready()
     {
         _player = GetParent<Player>();
 
-        // Get TickManager autoload
-        _tickManager = GetNode<TickManager>("/root/TickManager");
+        // If not initialized via dependency injection, search for TickManager
+        if (_tickManager == null)
+        {
+            // Try 1: Autoload (legacy path)
+            _tickManager = GetNodeOrNull<TickManager>("/root/TickManager");
+
+            // Try 2: GameSession (new path)
+            if (_tickManager == null)
+            {
+                _tickManager = GetNodeOrNull<TickManager>("/root/GameSession/Managers/TickManager");
+            }
+
+            // Try 3: Relative search (when in GameSession)
+            if (_tickManager == null)
+            {
+                var gameSession = GetNodeOrNull<Node>("/root/GameSession");
+                _tickManager = gameSession?.GetNodeOrNull<TickManager>("Managers/TickManager");
+            }
+
+            if (_tickManager == null)
+            {
+                GD.PrintErr("PlayerInput: Failed to find TickManager!");
+            }
+        }
     }
 
     public override void _PhysicsProcess(double delta)
